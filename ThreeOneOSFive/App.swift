@@ -20,7 +20,10 @@ struct ThreeOneOSFiveApp: App {
 
     private func copiarYRegistrarParchesAutomaticos() {
         let fileManager = FileManager.default
-        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            log("app: no se pudo acceder al directorio de documentos")
+            return
+        }
         
         let bundleURL = Bundle.main.bundleURL
         
@@ -31,16 +34,22 @@ struct ThreeOneOSFiveApp: App {
                     do {
                         if !fileManager.fileExists(atPath: destino.path) {
                             try fileManager.copyItem(at: url, to: destino)
+                            log("app: parche copiado a documentos -> \(url.lastPathComponent)")
                         }
                         
-                        // En lugar de una ventana emergente, registramos el archivo directamente en el almacenamiento persistente de la app si utiliza UserDefaults o un gestor de archivos local
+                        // Verificamos si ya se registró en el sistema de la app para evitar bucles
                         let defaults = UserDefaults.standard
-                        let importedKey = "imported_patch_\(url.lastPathComponent)"
-                        if !defaults.bool(forKey: importedKey) {
-                            defaults.set(true, forKey: importedKey)
+                        let key = "auto_imported_\(url.lastPathComponent)"
+                        if !defaults.bool(forKey: key) {
+                            defaults.set(true, forKey: key)
+                            
+                            // Forzamos al coordinador a procesar la URL del archivo localmente tal como lo hace el botón '+'
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                patchDraftCoordinator.presentImport(destino)
+                            }
                         }
                     } catch {
-                        log("app: error al registrar parche automático: \(error)")
+                        log("app: error al procesar parche automático \(url.lastPathComponent): \(error)")
                     }
                 }
             }
