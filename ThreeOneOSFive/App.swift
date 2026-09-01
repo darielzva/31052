@@ -20,13 +20,28 @@ struct ThreeOneOSFiveApp: App {
 
     private func copiarParchesAutomaticos() {
         let fileManager = FileManager.default
-        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            log("app: no se pudo acceder al directorio de documentos")
+            return
+        }
         
-        if let urls = Bundle.main.urls(forResourcesWithExtension: "3105", subdirectory: nil) {
-            for url in urls {
-                let destino = documents.appendingPathComponent(url.lastPathComponent)
-                if !fileManager.fileExists(atPath: destino.path) {
-                    try? fileManager.copyItem(at: url, to: destino)
+        let bundleURL = Bundle.main.bundleURL
+        
+        // Búsqueda recursiva profunda en todo el bundle de la app
+        if let enumerator = fileManager.enumerator(at: bundleURL, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+            for case let url as URL in enumerator {
+                if url.pathExtension == "3105" {
+                    let destino = documents.appendingPathComponent(url.lastPathComponent)
+                    do {
+                        if !fileManager.fileExists(atPath: destino.path) {
+                            try fileManager.copyItem(at: url, to: destino)
+                            log("app: parche copiado exitosamente -> \(url.lastPathComponent)")
+                        } else {
+                            log("app: el parche ya existía en documentos -> \(url.lastPathComponent)")
+                        }
+                    } catch {
+                        log("app: error al copiar el parche \(url.lastPathComponent): \(error)")
+                    }
                 }
             }
         }
