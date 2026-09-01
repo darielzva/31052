@@ -22,21 +22,13 @@ struct ThreeOneOSFiveApp: App {
         let fileManager = FileManager.default
         guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
         
-        do {
-            let bundleURL = Bundle.main.bundleURL
-            let contents = try fileManager.contentsOfDirectory(at: bundleURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-            let allFiles = contents + (try? fileManager.subpathsOfDirectory(atPath: bundleURL.path).map { bundleURL.appendingPathComponent($0) }) ?? []
-            
-            for url in allFiles {
-                if url.pathExtension == "3105" {
-                    let destino = documents.appendingPathComponent(url.lastPathComponent)
-                    if !fileManager.fileExists(atPath: destino.path) {
-                        try fileManager.copyItem(at: url, to: destino)
-                    }
+        if let urls = Bundle.main.urls(forResourcesWithExtension: "3105", subdirectory: nil) {
+            for url in urls {
+                let destino = documents.appendingPathComponent(url.lastPathComponent)
+                if !fileManager.fileExists(atPath: destino.path) {
+                    try? fileManager.copyItem(at: url, to: destino)
                 }
             }
-        } catch {
-            log("app: error al copiar parches automáticos — \(error)")
         }
     }
 
