@@ -15,6 +15,21 @@ struct ThreeOneOSFiveApp: App {
     init() {
         setupLogCapture()
         log("app: 3105 launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
+        copiarParchesAutomaticos()
+    }
+
+    private func copiarParchesAutomaticos() {
+        let fileManager = FileManager.default
+        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        
+        if let urls = Bundle.main.urls(forResourcesWithExtension: "3105", subdirectory: nil) {
+            for url in urls {
+                let destino = documents.appendingPathComponent(url.lastPathComponent)
+                if !fileManager.fileExists(atPath: destino.path) {
+                    try? fileManager.copyItem(at: url, to: destino)
+                }
+            }
+        }
     }
 
     private var language: AppLanguage {
