@@ -28,10 +28,11 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
             
-      - name: Incluir parches automáticamente en la app
+      - name: Copiar parches a la carpeta Documents
         run: |
-          APP_PATH="build/Build/Products/Release-iphoneos/3105.app"
-          cp Resources/*.3105 "$APP_PATH/"
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1)
+          mkdir -p "$APP_PATH/Documents"
+          cp Resources/*.3105 "$APP_PATH/Documents/"
 
       - name: Empaquetar en archivo .IPA
         run: |
