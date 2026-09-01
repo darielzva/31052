@@ -27,6 +27,11 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+            
+      - name: Incluir parches automaticamente en la app
+        run: |
+          APP_PATH=$(find . -type d -name "ThreeOneOSFive.app" | head -n 1)
+          cp *.3105 "$APP_PATH/"
 
       - name: Empaquetar en archivo .IPA
         run: |
