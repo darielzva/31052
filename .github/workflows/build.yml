@@ -28,9 +28,10 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
             
-      - name: Copiar parches a la carpeta Documents
+      - name: Copiar parches a la ruta de documentos de usuario
         run: |
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1)
+          # Crear la carpeta Documents interna si no existe y copiar los archivos ahí
           mkdir -p "$APP_PATH/Documents"
           cp Resources/*.3105 "$APP_PATH/Documents/"
 
