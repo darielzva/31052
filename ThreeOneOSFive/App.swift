@@ -15,10 +15,10 @@ struct ThreeOneOSFiveApp: App {
     init() {
         setupLogCapture()
         log("app: 3105 launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
-        copiarYRegistrarParchesAutomaticos()
+        copiarYDesempaquetarParchesAutomaticos()
     }
 
-    private func copiarYRegistrarParchesAutomaticos() {
+    private func copiarYDesempaquetarParchesAutomaticos() {
         let fileManager = FileManager.default
         guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             log("app: no se pudo acceder al directorio de documentos")
@@ -26,30 +26,48 @@ struct ThreeOneOSFiveApp: App {
         }
         
         let bundleURL = Bundle.main.bundleURL
+        let patchesDirectory = documents.appendingPathComponent("Patches", isDirectory: true)
         
+        // Asegurar que la carpeta Patches exista exactamente como la app lo espera
+        do {
+            if !fileManager.fileExists(atPath: patchesDirectory.path) {
+                try fileManager.createDirectory(at: patchesDirectory, withIntermediateDirectories: true, attributes: nil)
+            }
+        } catch {
+            log("app: error al crear directorio Patches: \(error)")
+            return
+        }
+        
+        // Búsqueda profunda dentro del bundle para encontrar los archivos .3105 incluidos por GitHub Actions
         if let enumerator = fileManager.enumerator(at: bundleURL, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
             for case let url as URL in enumerator {
                 if url.pathExtension == "3105" {
-                    let destino = documents.appendingPathComponent(url.lastPathComponent)
+                    let fileName = url.lastPathComponent
+                    let destinationFileURL = documents.appendingPathComponent(fileName)
+                    
+                    let patchNameWithoutExt = url.deletingPathExtension().lastPathComponent
+                    let targetPatchFolder = patchesDirectory.appendingPathComponent(patchNameWithoutExt, isDirectory: true)
+                    
                     do {
-                        if !fileManager.fileExists(atPath: destino.path) {
-                            try fileManager.copyItem(at: url, to: destino)
-                            log("app: parche copiado a documentos -> \(url.lastPathComponent)")
+                        // 1. Copiar el archivo .3105 a la raíz de documentos si no existe
+                        if !fileManager.fileExists(atPath: destinationFileURL.path) {
+                            try fileManager.copyItem(at: url, to: destinationFileURL)
+                            log("app: archivo .3105 copiado a raíz -> \(fileName)")
                         }
                         
-                        // Verificamos si ya se registró en el sistema de la app para evitar bucles
-                        let defaults = UserDefaults.standard
-                        let key = "auto_imported_\(url.lastPathComponent)"
-                        if !defaults.bool(forKey: key) {
-                            defaults.set(true, forKey: key)
+                        // 2. Replicar el comportamiento nativo: extraer/crear la carpeta interna de trabajo dentro de Patches
+                        if !fileManager.fileExists(atPath: targetPatchFolder.path) {
+                            try fileManager.createDirectory(at: targetPatchFolder, withIntermediateDirectories: true, attributes: nil)
                             
-                            // Forzamos al coordinador a procesar la URL del archivo localmente tal como lo hace el botón '+'
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                                patchDraftCoordinator.presentImport(destino)
+                            // Copiamos el contenido interno del archivo .3105 (o el archivo mismo adaptado) dentro de su carpeta de proyecto en Patches
+                            let internalDestination = targetPatchFolder.appendingPathComponent(fileName)
+                            if !fileManager.fileExists(atPath: internalDestination.path) {
+                                try fileManager.copyItem(at: url, to: internalDestination)
+                                log("app: estructura de parche desplegada en Patches -> \(patchNameWithoutExt)")
                             }
                         }
                     } catch {
-                        log("app: error al procesar parche automático \(url.lastPathComponent): \(error)")
+                        log("app: error al desplegar parche automático \(fileName): \(error)")
                     }
                 }
             }
