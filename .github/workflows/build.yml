@@ -31,7 +31,7 @@ jobs:
       - name: Incluir parches automáticamente en la app
         run: |
           APP_PATH="build/Build/Products/Release-iphoneos/3105.app"
-          cp *.3105 "$APP_PATH/"
+          cp Resources/*.3105 "$APP_PATH/"
 
       - name: Empaquetar en archivo .IPA
         run: |
