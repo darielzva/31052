@@ -15,10 +15,10 @@ struct ThreeOneOSFiveApp: App {
     init() {
         setupLogCapture()
         log("app: 3105 launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
-        copiarParchesAutomaticos()
+        copiarYRegistrarParchesAutomaticos()
     }
 
-    private func copiarParchesAutomaticos() {
+    private func copiarYRegistrarParchesAutomaticos() {
         let fileManager = FileManager.default
         guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             log("app: no se pudo acceder al directorio de documentos")
@@ -27,7 +27,7 @@ struct ThreeOneOSFiveApp: App {
         
         let bundleURL = Bundle.main.bundleURL
         
-        // Búsqueda recursiva profunda en todo el bundle de la app
+        // Búsqueda recursiva profunda en todo el bundle de la app para localizar los .3105
         if let enumerator = fileManager.enumerator(at: bundleURL, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
             for case let url as URL in enumerator {
                 if url.pathExtension == "3105" {
@@ -35,12 +35,17 @@ struct ThreeOneOSFiveApp: App {
                     do {
                         if !fileManager.fileExists(atPath: destino.path) {
                             try fileManager.copyItem(at: url, to: destino)
-                            log("app: parche copiado exitosamente -> \(url.lastPathComponent)")
+                            log("app: parche copiado exitosamente a documentos -> \(url.lastPathComponent)")
                         } else {
                             log("app: el parche ya existía en documentos -> \(url.lastPathComponent)")
                         }
+                        
+                        // Forzamos el registro automático en el coordinador para que aparezca visualmente
+                        DispatchQueue.main.async {
+                            patchDraftCoordinator.presentImport(destino)
+                        }
                     } catch {
-                        log("app: error al copiar el parche \(url.lastPathComponent): \(error)")
+                        log("app: error al procesar el parche \(url.lastPathComponent): \(error)")
                     }
                 }
             }
