@@ -22,7 +22,7 @@ struct SettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "shippingbox.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(Color(hex: accentColorHex))
+                            .foregroundColor(AppTheme.accent)
                         VStack(alignment: .leading) {
                             Text("3105")
                                 .font(.headline)
@@ -40,7 +40,7 @@ struct SettingsView: View {
                             ForEach(themeColors, id: \.hex) { colorItem in
                                 VStack(spacing: 6) {
                                     Circle()
-                                        .fill(Color(hex: colorItem.hex))
+                                        .fill(AppTheme.accent)
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Circle()
