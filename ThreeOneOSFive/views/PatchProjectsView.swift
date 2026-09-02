@@ -18,7 +18,19 @@ struct PatchProjectsView: View {
     @AppStorage("accentColor") private var accentColorHex: String = "blue"
 
     private var currentAccentColor: Color {
-        Color(hex: accentColorHex) ?? AppTheme.accent
+        switch accentColorHex.lowercased() {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "red": return .red
+        case "green": return .green
+        case "orange": return .orange
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "indigo": return .indigo
+        case "teal": return .teal
+        case "mint": return .mint
+        default: return AppTheme.accent
+        }
     }
 
     private var filteredItems: [PatchLibraryItem] {
@@ -311,7 +323,19 @@ private struct PatchProjectDetailView: View {
     @AppStorage("accentColor") private var accentColorHex: String = "blue"
 
     private var currentAccentColor: Color {
-        Color(hex: accentColorHex) ?? AppTheme.accent
+        switch accentColorHex.lowercased() {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "red": return .red
+        case "green": return .green
+        case "orange": return .orange
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "indigo": return .indigo
+        case "teal": return .teal
+        case "mint": return .mint
+        default: return AppTheme.accent
+        }
     }
 
     private var item: PatchLibraryItem? {
