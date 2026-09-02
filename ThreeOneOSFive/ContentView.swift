@@ -1,12 +1,17 @@
 import SwiftUI
 import UIKit
 
+private enum PatchTabType {
+    case aim, visual
+}
+
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @State private var selectedTab = 0
     @State private var showSettings = false
     @State private var showLogs = false
+    @State private var selectedPatchTab: PatchTabType = .aim
 
     // Almacenamientos sincronizados
     @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
@@ -28,12 +33,50 @@ struct ContentView: View {
                 switch selectedTab {
                 case 0:
                     NavigationStack {
-                        PatchProjectsView()
-                            .navigationBarTitleDisplayMode(.inline)
-                            .tint(Color(hexString: accentColorHex))
-                            .toolbar {
-                                toolbarContent
+                        VStack(spacing: 0) {
+                            // Selector de pestañas estilo píldora (AIM / VISUAL)
+                            HStack(spacing: 12) {
+                                Button(action: { selectedPatchTab = .aim }) {
+                                    Text("AIM")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(selectedPatchTab == .aim ? Color(hexString: accentColorHex) : Color(.systemGray6))
+                                        .foregroundColor(selectedPatchTab == .aim ? .white : .secondary)
+                                        .cornerRadius(12)
+                                }
+
+                                Button(action: { selectedPatchTab = .visual }) {
+                                    Text("VISUAL")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(selectedPatchTab == .visual ? Color(hexString: accentColorHex) : Color(.systemGray6))
+                                        .foregroundColor(selectedPatchTab == .visual ? .white : .secondary)
+                                        .cornerRadius(12)
+                                }
                             }
+                            .padding(.horizontal)
+                            .padding(.vertical, 10)
+
+                            if selectedPatchTab == .aim {
+                                PatchProjectsView()
+                            } else {
+                                List {
+                                    Section {
+                                        visualRow(title: "Holo Armas Celeste", icon: "sparkles", color: .cyan)
+                                        visualRow(title: "Holo Armas Amarillo", icon: "sparkles", color: .yellow)
+                                        visualRow(title: "Holo Armas Verde", icon: "sparkles", color: .green)
+                                    }
+                                }
+                                .listStyle(.insetGrouped)
+                            }
+                        }
+                        .navigationBarTitleDisplayMode(.inline)
+                        .tint(Color(hexString: accentColorHex))
+                        .toolbar {
+                            toolbarContent
+                        }
                     }
                 case 1:
                     NavigationStack {
@@ -80,6 +123,25 @@ struct ContentView: View {
         .sheet(isPresented: $showLogs) { LogView() }
     }
 
+    @ViewBuilder
+    private func visualRow(title: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 36, height: 36)
+                .background(color.opacity(0.15))
+                .cornerRadius(8)
+            
+            Text(title)
+                .font(.body.weight(.semibold))
+                .foregroundColor(.primary)
+            
+            Spacer()
+        }
+        .padding(.vertical, 6)
+    }
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -113,7 +175,7 @@ private struct FloatingTabButton: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold)) // Iconos más grandes como pediste
+                    .font(.system(size: 20, weight: .semibold))
                 
                 if selectedTab == tag {
                     Text(title)
