@@ -15,6 +15,11 @@ struct PatchProjectsView: View {
     @State private var showCreate = false
     @State private var showImporter = false
     @State private var searchText = ""
+    @AppStorage("accentColor") private var accentColorHex: String = "blue"
+
+    private var currentAccentColor: Color {
+        Color(hex: accentColorHex) ?? AppTheme.accent
+    }
 
     private var filteredItems: [PatchLibraryItem] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -161,14 +166,14 @@ struct PatchProjectsView: View {
     private func itemRow(_ item: PatchLibraryItem) -> some View {
         if item.isLocked {
             Button { store.requestUnlock(for: item) } label: {
-                PatchProjectRow(item: item, language: language)
+                PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
             }
             .buttonStyle(.plain)
         } else {
             NavigationLink {
                 PatchProjectDetailView(store: store, projectID: item.id)
             } label: {
-                PatchProjectRow(item: item, language: language)
+                PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
             }
         }
     }
@@ -177,7 +182,7 @@ struct PatchProjectsView: View {
         VStack(spacing: 12) {
             Image(systemName: "shippingbox")
                 .font(.system(size: AppTheme.emptyIconSize, weight: .light))
-                .foregroundStyle(AppTheme.accent)
+                .foregroundStyle(currentAccentColor)
             Text(language.text("patch.empty_title"))
                 .font(.headline)
             Text(language.text("patch.empty_message"))
@@ -187,6 +192,7 @@ struct PatchProjectsView: View {
             Button(language.text("patch.new")) { showCreate = true }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .tint(currentAccentColor)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 64)
@@ -212,10 +218,14 @@ struct PatchProjectsView: View {
 private struct PatchProjectRow: View {
     let item: PatchLibraryItem
     let language: AppLanguage
+    let accentColor: Color
 
     var body: some View {
         HStack(spacing: 12) {
-            AppRowIcon(systemName: item.isLocked ? "lock.doc.fill" : "shippingbox.fill")
+            Image(systemName: item.isLocked ? "lock.doc.fill" : "shippingbox.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(accentColor)
+                .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.project?.name ?? language.text("patch.locked_project"))
                     .font(.body.weight(.semibold))
@@ -298,6 +308,11 @@ private struct PatchProjectDetailView: View {
     @State private var isWorking = false
     @State private var actionAlert: PatchStoreAlert?
     @State private var shareRequest: PatchShareRequest?
+    @AppStorage("accentColor") private var accentColorHex: String = "blue"
+
+    private var currentAccentColor: Color {
+        Color(hex: accentColorHex) ?? AppTheme.accent
+    }
 
     private var item: PatchLibraryItem? {
         store.items.first(where: { $0.id == projectID })
@@ -322,7 +337,7 @@ private struct PatchProjectDetailView: View {
                                     .font(.subheadline.monospaced())
                             } icon: {
                                 Image(systemName: "app.dashed")
-                                    .foregroundStyle(AppTheme.accent)
+                                    .foregroundStyle(currentAccentColor)
                             }
                         }
                         LabeledContent(language.text("patch.files")) {
@@ -378,7 +393,7 @@ private struct PatchProjectDetailView: View {
                 Section(language.text("patch.password")) {
                     HStack(spacing: 12) {
                         Image(systemName: item.summary.isPasswordProtected ? "lock.fill" : "lock.open")
-                            .foregroundStyle(AppTheme.accent)
+                            .foregroundStyle(currentAccentColor)
                             .frame(width: 24)
                         Text(language.text(item.summary.isPasswordProtected
                             ? "patch.password_locked"
@@ -462,7 +477,7 @@ private struct PatchProjectDetailView: View {
         .alert(item: $actionAlert) { alert in
             Alert(
                 title: Text(language.text(alert.titleKey)),
-                message: Text(alert.message(language: language)),
+                message: Text(language.text(alert.message(language: language))),
                 dismissButton: .default(Text(language.text("common.ok")))
             )
         }
@@ -488,7 +503,7 @@ private struct PatchProjectDetailView: View {
                 .lineLimit(2)
             Label(rule.replacementFilename, systemImage: "arrow.triangle.2.circlepath")
                 .font(.caption)
-                .foregroundStyle(AppTheme.accent)
+                .foregroundStyle(currentAccentColor)
         }
         .padding(.vertical, 3)
     }
