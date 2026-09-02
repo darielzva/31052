@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
-    // Almacenamiento sincronizado con toda la app
     @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
     @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
     
@@ -22,7 +21,7 @@ struct SettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "shippingbox.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(AppTheme.accent)
+                            .foregroundColor(Color(hexString: accentColorHex))
                         VStack(alignment: .leading) {
                             Text("3105")
                                 .font(.headline)
@@ -40,7 +39,7 @@ struct SettingsView: View {
                             ForEach(themeColors, id: \.hex) { colorItem in
                                 VStack(spacing: 6) {
                                     Circle()
-                                        .fill(AppTheme.accent)
+                                        .fill(Color(hexString: colorItem.hex))
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Circle()
@@ -86,8 +85,11 @@ struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Color(hexString: accentColorHex))
                 }
             }
         }
+        .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
+        .tint(Color(hexString: accentColorHex))
     }
 }
