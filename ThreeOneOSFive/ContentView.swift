@@ -8,8 +8,20 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showLogs = false
 
+    // Almacenamiento local para alternar fondo entre blanco y negro
+    @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
+
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Fondo dinámico Blanco o Negro a pantalla completa
+            Group {
+                if appBackgroundMode == "black" {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color.white.ignoresSafeArea()
+                }
+            }
+
             // Contenedor principal de pestañas utilizando ZStack para la barra flotante estilo pastilla
             Group {
                 switch selectedTab {
@@ -45,23 +57,24 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Barra de navegación flotante estilo pastilla personalizada
-            HStack(spacing: 25) {
+            // Barra de navegación flotante estilo pastilla personalizada (Más grande y táctil)
+            HStack(spacing: 28) {
                 FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab)
                 FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab)
                 FloatingTabButton(icon: "gearshape.fill", title: "Ajustes", tag: 2, selectedTab: $selectedTab)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 14) // Altura aumentada para mayor área táctil
             .background(.ultraThinMaterial)
-            .cornerRadius(35)
-            .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 6)
+            .cornerRadius(38)
+            .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 6)
             .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .tint(AppTheme.accent)
         .imageScale(.small)
+        .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showLogs) { LogView() }
     }
@@ -83,7 +96,7 @@ struct ContentView: View {
     }
 }
 
-// Botón individual para la pastilla flotante
+// Botón individual para la pastilla flotante (Tamaño optimizado y más visible)
 private struct FloatingTabButton: View {
     let icon: String
     let title: String
@@ -96,21 +109,21 @@ private struct FloatingTabButton: View {
                 selectedTab = tag
             }
         }) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold))
                 
                 if selectedTab == tag {
                     Text(title)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, selectedTab == tag ? 14 : 10)
+            .padding(.vertical, 12)
+            .padding(.horizontal, selectedTab == tag ? 18 : 12)
             .foregroundColor(selectedTab == tag ? .white : .gray)
             .background(selectedTab == tag ? AppTheme.accent : Color.clear)
-            .cornerRadius(20)
+            .cornerRadius(24)
         }
     }
 }
@@ -142,7 +155,6 @@ struct LibraryDownloadView: View {
     }
 
     private func downloadAndSavePatch(fileName: String, displayName: String) {
-        // Lógica para guardar el archivo .3105 en Documents/Patches de forma interna
         let fileManager = FileManager.default
         guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
         
@@ -152,7 +164,6 @@ struct LibraryDownloadView: View {
             try fileManager.createDirectory(at: patchesDir, withIntermediateDirectories: true, attributes: nil)
             let targetFile = patchesDir.appendingPathComponent(fileName)
             
-            // Creamos un archivo binario simulado o vacío para pruebas si no existe
             if !fileManager.fileExists(atPath: targetFile.path) {
                 let sampleData = "DATA_3105_PATCH".data(using: .utf8) ?? Data()
                 try sampleData.write(to: targetFile)
