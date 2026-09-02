@@ -5,6 +5,15 @@ struct SettingsView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var appState: AppState
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
+    @AppStorage("appThemeColor") private var appThemeColor: String = "purple"
+
+    let availableThemes = [
+        ("purple", "Púrpura", Color.purple),
+        ("blue", "Azul", Color.blue),
+        ("green", "Verde", Color.green),
+        ("orange", "Naranja", Color.orange),
+        ("red", "Rojo", Color.red)
+    ]
 
     var body: some View {
         NavigationStack {
@@ -18,6 +27,31 @@ struct SettingsView: View {
                             Text(language.text("common.version", appVersion))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section("Apariencia y Tema de Color") {
+                    HStack(spacing: 16) {
+                        ForEach(availableThemes, id: \.0) { key, name, color in
+                            Button(action: {
+                                appThemeColor = key
+                            }) {
+                                VStack(spacing: 6) {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 36, height: 36)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.white, lineWidth: appThemeColor == key ? 3 : 0)
+                                        )
+                                    Text(name)
+                                        .font(.caption2)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 4)
