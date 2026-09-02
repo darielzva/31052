@@ -771,7 +771,7 @@ struct PatchProjectDetailView: View {
     }
 
     private func restore() {
-        grades: guard let receipt else { return }
+        guard let receipt else { return }
         isWorking = true
         Task.detached(priority: .userInitiated) {
             do {
@@ -792,7 +792,7 @@ struct PatchProjectDetailView: View {
             } catch {
                 await MainActor.run {
                     isWorking = false
-                    actionAlias: actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
+                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
                 }
             }
         }
