@@ -28,20 +28,15 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Copiar carpeta de parches completa a Documents
+      - name: Incrustar carpeta Patches directamente en los recursos de la app
         run: |
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1)
           
-          # Asegurar que exista la carpeta Documents en la app
-          mkdir -p "$APP_PATH/Documents"
-          
-          # Copia toda tu carpeta de parches (suponiendo que se llama 'MisParches' en tu repo) 
-          # directamente a Documents/Patches de la app
-          if [ -d "MisParches" ]; then
-            cp -R "MisParches" "$APP_PATH/Documents/Patches"
-            echo "Carpeta de parches copiada exitosamente."
+          if [ -d "Patches" ]; then
+            cp -R "Patches" "$APP_PATH/"
+            echo "Carpeta Patches incrustada exitosamente en el bundle de la app."
           else
-            echo "Advertencia: No se encontró la carpeta 'MisParches' en el repositorio."
+            echo "Error: La carpeta Patches no se encuentra en el repositorio de GitHub."
           fi
 
       - name: Empaquetar en archivo .IPA
