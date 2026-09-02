@@ -27,7 +27,6 @@ class AppSessionManager: ObservableObject {
         self.currentKey = key
         self.isLoggedIn = true
         
-        // Regla solicitada: Si pones la key "123" (o empieza con ADMIN), eres admin y se activa el panel de generar keys. Si pones otra (ej. "638"), no.
         if key == "123" || key.starts(with: "ADMIN") {
             self.isAdmin = true
             self.planType = "ADMIN / VIP"
@@ -36,7 +35,6 @@ class AppSessionManager: ObservableObject {
             self.planType = key.count > 10 ? "VIP" : "NORMAL"
         }
         
-        // Simular tiempo de expiración según la key o por defecto 30 días
         self.expirationDate = Date().addingTimeInterval(30 * 24 * 3600)
         updateTimeRemaining()
         
@@ -216,7 +214,6 @@ struct ContentView: View {
                                     .tint(Color(hexString: accentColorHex))
                             }
                         case 3:
-                            // Pestaña condicional KEYS (Solo visible para Administradores)
                             if session.isAdmin {
                                 NavigationStack {
                                     KeysAdminManagementView(accentColorHex: $accentColorHex)
@@ -234,7 +231,6 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     
-                    // Barra de navegación flotante dinámica (Incluye Keys si es Admin)
                     HStack(spacing: session.isAdmin ? 16 : 24) {
                         FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab, accentColorHex: accentColorHex)
                         FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab, accentColorHex: accentColorHex)
@@ -290,7 +286,6 @@ struct MainPanelWithUserInfoView: View {
     @EnvironmentObject var session: AppSessionManager
     @Binding var accentColorHex: String
     
-    // Obtener versión de iOS en tiempo real de forma nativa
     private var iosVersionString: String {
         let version = UIDevice.current.systemVersion
         return "iOS \(version)"
@@ -299,7 +294,6 @@ struct MainPanelWithUserInfoView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Tarjeta de Usuario Superior (Estilo Leal Store solicitado)
                 VStack(spacing: 14) {
                     HStack(spacing: 12) {
                         ZStack {
@@ -340,7 +334,6 @@ struct MainPanelWithUserInfoView: View {
                     
                     Divider().background(Color.gray.opacity(0.3))
                     
-                    // Datos de cuenta en celdas (Key, Expiración, Dispositivo/iOS)
                     VStack(spacing: 8) {
                         UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex)
                         UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex)
@@ -357,7 +350,6 @@ struct MainPanelWithUserInfoView: View {
                 .padding(.horizontal)
                 .padding(.top, 10)
                 
-                // Vista de Parches existente integrada debajo
                 PatchProjectsView()
             }
         }
@@ -680,21 +672,18 @@ private struct VisualDownloadRow: View {
                 Text(description).font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
-            Button(action: functionWrapper(action))
+            
+            Button(action: action) {
+                Text("Descargar")
+                    .font(.subheadline.bold())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(hexString: accentColorHex))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+            .buttonStyle(BorderlessButtonStyle())
         }
         .padding(.vertical, 4)
-    }
-    
-    private func functionWrapper(_ closure: @escaping () -> Void) -> some View {
-        Button(action: closure) {
-            Text("Descargar")
-                .font(.subheadline.bold())
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(hexString: accentColorHex))
-                .foregroundColor(.white)
-                .cornerRadius(12)
-        }
-        .buttonStyle(BorderlessButtonStyle())
     }
 }
