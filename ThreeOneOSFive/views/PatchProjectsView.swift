@@ -309,7 +309,7 @@ private struct PatchUnlockView: View {
     }
 }
 
-private struct PatchProjectDetailView: View {
+struct PatchProjectDetailView: View {
     @Environment(\.appLanguage) private var language
     @ObservedObject var store: PatchProjectStore
     let projectID: UUID
@@ -427,21 +427,19 @@ private struct PatchProjectDetailView: View {
                 }
 
                 Section {
-                    Button {
-                        showApplyConfirmation = true
-                    } label: {
-                        actionLabel("patch.apply", systemImage: "checkmark.shield.fill")
+                    Toggle(isOn: Binding(
+                        get: { receipt != nil },
+                        set: { newValue in
+                            if newValue {
+                                showApplyConfirmation = true
+                            } else {
+                                showRestoreConfirmation = true
+                            }
+                        }
+                    )) {
+                        Label(language.text("patch.apply"), systemImage: "checkmark.shield.fill")
                     }
                     .disabled(isWorking)
-
-                    if receipt != nil {
-                        Button(role: .destructive) {
-                            showRestoreConfirmation = true
-                        } label: {
-                            actionLabel("patch.restore", systemImage: "arrow.uturn.backward.circle")
-                        }
-                        .disabled(isWorking)
-                    }
 
                     Button(action: prepareExport) {
                         actionLabel("patch.export", systemImage: "square.and.arrow.up")
