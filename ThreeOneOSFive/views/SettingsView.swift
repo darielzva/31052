@@ -4,10 +4,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     // Almacenamiento sincronizado con toda la app
-    @AppStorage("accentColor") var accentColorHex: String = "FF7F50" // Naranja por defecto
-    @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black" // "black" o "white"
+    @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
+    @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
     
-    // Lista de colores disponibles para el tema
     let themeColors: [(name: String, hex: String)] = [
         ("Púrpura", "AF52DE"),
         ("Azul", "007AFF"),
@@ -19,7 +18,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Sección de Identidad de la App
                 Section {
                     HStack(spacing: 12) {
                         Image(systemName: "shippingbox.fill")
@@ -36,10 +34,7 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
-                // Sección de Apariencia, Tema y Fondo
                 Section(header: Text("Apariencia y Tema de Color")) {
-                    
-                    // Selector de Color de Tema
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
                             ForEach(themeColors, id: \.hex) { colorItem in
@@ -53,7 +48,6 @@ struct SettingsView: View {
                                         )
                                         .shadow(radius: 2)
                                         .onTapGesture {
-                                            // Actualiza el color del tema globalmente al instante
                                             accentColorHex = colorItem.hex
                                         }
                                     
@@ -66,7 +60,6 @@ struct SettingsView: View {
                         .padding(.vertical, 8)
                     }
                     
-                    // Selector de Fondo: Blanco o Negro
                     Picker("Fondo de la App", selection: $appBackgroundMode) {
                         Text("Negro (Dark)").tag("black")
                         Text("Blanco (Light)").tag("white")
@@ -75,7 +68,6 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
-                // Sección de Información del Dispositivo
                 Section(header: Text("Device")) {
                     LabeledContent("Hardware model") {
                         Text(AppInfo.displayMachineName)
