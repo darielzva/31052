@@ -232,6 +232,19 @@ private struct PatchProjectRow: View {
     let language: AppLanguage
     let accentColor: Color
 
+    @State private var showApplyConfirmation = false
+    @State private var showRestoreConfirmation = false
+    @State private var isWorking = false
+    @State private var actionAlert: PatchStoreAlert?
+
+    private var receipt: PatchTransactionReceipt? {
+        DevicePatchService.latestReceipt(projectID: item.id)
+    }
+
+    private var isWorkspaceProject: Bool {
+        item.summary.schemaVersion >= 2
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: item.isLocked ? "lock.doc.fill" : "shippingbox.fill")
@@ -258,8 +271,110 @@ private struct PatchProjectRow: View {
                     .foregroundStyle(.secondary)
                     .accessibilityLabel(language.text("patch.password_protected"))
             }
+            if !item.isLocked {
+                Toggle(isOn: Binding(
+                    get: { receipt != nil },
+                    set: { newValue in
+                        if newValue {
+                            showApplyConfirmation = true
+                        } else {
+                            showRestoreConfirmation = true
+                        }
+                    }
+                )) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                .tint(accentColor)
+                .disabled(isWorking)
+                .buttonStyle(BorderlessButtonStyle())
+            }
         }
         .padding(.vertical, 4)
+        .confirmationDialog(
+            language.text("patch.apply_confirm_title"),
+            isPresented: $showApplyConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(language.text("patch.apply")) { apply() }
+            Button(language.text("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(language.text("patch.apply_confirm_message"))
+        }
+        .confirmationDialog(
+            language.text("patch.restore_confirm_title"),
+            isPresented: $showRestoreConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(language.text("patch.restore"), role: .destructive) { restore() }
+            Button(language.text("common.cancel"), role: .cancel) {}
+        }
+        .alert(item: $actionAlert) { alert in
+            Alert(
+                title: Text(language.text(alert.titleKey)),
+                message: Text(language.text(alert.message(language: language))),
+                dismissButton: .default(Text(language.text("common.ok")))
+            )
+        }
+    }
+
+    private func apply() {
+        guard let baseProject = item.project else { return }
+        isWorking = true
+        Task.detached(priority: .userInitiated) {
+            do {
+                let project = isWorkspaceProject
+                    ? try PatchProjectLibrary.synchronizeWorkspace(item: item)
+                    : baseProject
+                _ = try DevicePatchService.apply(project: project)
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.applied_message")
+                }
+            } catch let error as PatchPackageError {
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(
+                        titleKey: "common.failed",
+                        messageKey: error.localizationKey,
+                        messageArgument: error.localizationArgument
+                    )
+                }
+            } catch {
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.apply")
+                }
+            }
+        }
+    }
+
+    private func restore() {
+        guard let receipt else { return }
+        isWorking = true
+        Task.detached(priority: .userInitiated) {
+            do {
+                try DevicePatchService.restore(receipt: receipt)
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.restored_message")
+                }
+            } catch let error as PatchPackageError {
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(
+                        titleKey: "common.failed",
+                        messageKey: error.localizationKey,
+                        messageArgument: error.localizationArgument
+                    )
+                }
+            } catch {
+                await MainActor.run {
+                    isWorking = false
+                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
+                }
+            }
+        }
     }
 }
 
