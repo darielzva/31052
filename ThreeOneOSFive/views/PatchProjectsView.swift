@@ -257,6 +257,21 @@ private struct PatchProjectRow: View {
         item.summary.schemaVersion >= 2
     }
 
+    private var dynamicIconName: String {
+        let name = (item.project?.name ?? "").lowercased()
+        if name.contains("aim") || name.contains("mira") || name.contains("headshot") {
+            return "scope"
+        } else if name.contains("visual") || name.contains("esp") || name.contains("holo") || name.contains("celeste") {
+            return "eye.fill"
+        } else if name.contains("key") || name.contains("bypass") || name.contains("auth") {
+            return "key.fill"
+        } else if name.contains("speed") || name.contains("fast") {
+            return "gauge.with.needle"
+        } else {
+            return item.isLocked ? "lock.doc.fill" : "shippingbox.fill"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
@@ -265,7 +280,7 @@ private struct PatchProjectRow: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.15)))
                     .frame(width: 36, height: 36)
                 
-                Image(systemName: item.isLocked ? "lock.doc.fill" : "shippingbox.fill")
+                Image(systemName: dynamicIconName)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
@@ -756,7 +771,7 @@ struct PatchProjectDetailView: View {
     }
 
     private func restore() {
-        guard let receipt else { return }
+        grades: guard let receipt else { return }
         isWorking = true
         Task.detached(priority: .userInitiated) {
             do {
@@ -777,7 +792,7 @@ struct PatchProjectDetailView: View {
             } catch {
                 await MainActor.run {
                     isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
+                    actionAlias: actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
                 }
             }
         }
