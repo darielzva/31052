@@ -28,25 +28,21 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Copiar parches a Documents/Patches con su estructura correcta
+      - name: Copiar carpeta de parches completa a Documents
         run: |
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1)
-          PATCHES_DIR="$APP_PATH/Documents/Patches"
           
-          mkdir -p "$PATCHES_DIR"
+          # Asegurar que exista la carpeta Documents en la app
+          mkdir -p "$APP_PATH/Documents"
           
-          for patch in Resources/*.3105; do
-            if [ -f "$patch" ]; then
-              filename=$(basename -- "$patch")
-              foldername="${filename%.*}"
-              
-              target_folder="$PATCHES_DIR/$foldername"
-              mkdir -p "$target_folder"
-              
-              # Copiar el archivo dentro de la carpeta con su mismo nombre
-              cp "$patch" "$target_folder/"
-            fi
-          done
+          # Copia toda tu carpeta de parches (suponiendo que se llama 'MisParches' en tu repo) 
+          # directamente a Documents/Patches de la app
+          if [ -d "MisParches" ]; then
+            cp -R "MisParches" "$APP_PATH/Documents/Patches"
+            echo "Carpeta de parches copiada exitosamente."
+          else
+            echo "Advertencia: No se encontró la carpeta 'MisParches' en el repositorio."
+          fi
 
       - name: Empaquetar en archivo .IPA
         run: |
