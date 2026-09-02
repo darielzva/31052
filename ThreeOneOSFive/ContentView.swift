@@ -8,8 +8,9 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showLogs = false
 
-    // Almacenamiento local para alternar fondo entre blanco y negro
+    // Almacenamientos sincronizados
     @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
+    @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -22,24 +23,24 @@ struct ContentView: View {
                 }
             }
 
-            // Contenedor principal de pestañas utilizando ZStack para la barra flotante estilo pastilla
+            // Contenedor principal de pestañas
             Group {
                 switch selectedTab {
                 case 0:
                     NavigationStack {
                         PatchProjectsView()
                             .navigationBarTitleDisplayMode(.inline)
-                            .tint(AppTheme.accent)
+                            .tint(Color(hexString: accentColorHex))
                             .toolbar {
                                 toolbarContent
                             }
                     }
                 case 1:
                     NavigationStack {
-                        LibraryDownloadView()
+                        LibraryDownloadView(accentColorHex: $accentColorHex)
                             .navigationTitle("Librería de Aims")
                             .navigationBarTitleDisplayMode(.inline)
-                            .tint(AppTheme.accent)
+                            .tint(Color(hexString: accentColorHex))
                             .toolbar {
                                 toolbarContent
                             }
@@ -49,7 +50,7 @@ struct ContentView: View {
                         SettingsView()
                             .navigationTitle("Configuración")
                             .navigationBarTitleDisplayMode(.inline)
-                            .tint(AppTheme.accent)
+                            .tint(Color(hexString: accentColorHex))
                     }
                 default:
                     PatchProjectsView()
@@ -57,14 +58,14 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Barra de navegación flotante estilo pastilla personalizada (Más grande y táctil)
+            // Barra de navegación flotante estilo pastilla personalizada
             HStack(spacing: 28) {
-                FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab)
-                FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab)
-                FloatingTabButton(icon: "gearshape.fill", title: "Ajustes", tag: 2, selectedTab: $selectedTab)
+                FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab, accentColorHex: accentColorHex)
+                FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab, accentColorHex: accentColorHex)
+                FloatingTabButton(icon: "gearshape.fill", title: "Ajustes", tag: 2, selectedTab: $selectedTab, accentColorHex: accentColorHex)
             }
             .padding(.horizontal, 22)
-            .padding(.vertical, 14) // Altura aumentada para mayor área táctil
+            .padding(.vertical, 14)
             .background(.ultraThinMaterial)
             .cornerRadius(38)
             .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 6)
@@ -72,8 +73,8 @@ struct ContentView: View {
             .padding(.bottom, 20)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .tint(AppTheme.accent)
-        .imageScale(.small)
+        .tint(Color(hexString: accentColorHex))
+        .imageScale(.medium)
         .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showLogs) { LogView() }
@@ -96,12 +97,13 @@ struct ContentView: View {
     }
 }
 
-// Botón individual para la pastilla flotante (Tamaño optimizado y más visible)
+// Botón individual para la pastilla flotante con color dinámico
 private struct FloatingTabButton: View {
     let icon: String
     let title: String
     let tag: Int
     @Binding var selectedTab: Int
+    let accentColorHex: String
 
     var body: some View {
         Button(action: {
@@ -111,7 +113,7 @@ private struct FloatingTabButton: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold)) // Iconos más grandes como pediste
                 
                 if selectedTab == tag {
                     Text(title)
@@ -122,29 +124,30 @@ private struct FloatingTabButton: View {
             .padding(.vertical, 12)
             .padding(.horizontal, selectedTab == tag ? 18 : 12)
             .foregroundColor(selectedTab == tag ? .white : .gray)
-            .background(selectedTab == tag ? AppTheme.accent : Color.clear)
+            .background(selectedTab == tag ? Color(hexString: accentColorHex) : Color.clear)
             .cornerRadius(24)
         }
     }
 }
 
-// Vista de Librería de descargas para los Aims y archivos con notificación simulada
+// Vista de Librería de descargas actualizada para recibir el color dinámico
 struct LibraryDownloadView: View {
     @State private var alertMessage = ""
     @State private var showAlert = false
+    @Binding var accentColorHex: String
 
     var body: some View {
         List {
             Section(header: Text("Aims y Modificaciones")) {
-                DownloadRow(title: "Aimbot Pecho", description: "Apunta automáticamente al torso del enemigo.") {
+                DownloadRow(title: "Aimbot Pecho", description: "Apunta automáticamente al torso del enemigo.", accentColorHex: $accentColorHex) {
                     downloadAndSavePatch(fileName: "AimbotPecho.3105", displayName: "Aimbot Pecho")
                 }
                 
-                DownloadRow(title: "Aimbot Cuello", description: "Calibración de precisión directa al cuello.") {
+                DownloadRow(title: "Aimbot Cuello", description: "Calibración de precisión directa al cuello.", accentColorHex: $accentColorHex) {
                     downloadAndSavePatch(fileName: "AimbotCuello.3105", displayName: "Aimbot Cuello")
                 }
                 
-                DownloadRow(title: "Aimbot Drag", description: "Mejora la velocidad de arrastre de mira.") {
+                DownloadRow(title: "Aimbot Drag", description: "Mejora la velocidad de arrastre de mira.", accentColorHex: $accentColorHex) {
                     downloadAndSavePatch(fileName: "AimbotDrag.3105", displayName: "Aimbot Drag")
                 }
             }
@@ -181,6 +184,7 @@ struct LibraryDownloadView: View {
 private struct DownloadRow: View {
     let title: String
     let description: String
+    @Binding var accentColorHex: String
     let action: () -> Void
 
     var body: some View {
@@ -198,148 +202,12 @@ private struct DownloadRow: View {
                     .font(.subheadline.bold())
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(AppTheme.accent)
+                    .background(Color(hexString: accentColorHex))
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
             .buttonStyle(BorderlessButtonStyle())
         }
         .padding(.vertical, 4)
-    }
-}
-
-private struct CompactTabLabel: View {
-    let title: String
-    let systemImage: String
-
-    @ViewBuilder
-    var body: some View {
-        if let image = UIImage(
-            systemName: systemImage,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .medium)
-        )?.withRenderingMode(.alwaysTemplate) {
-            Image(uiImage: image)
-        } else {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .medium))
-        }
-        Text(title)
-    }
-}
-
-private extension AppSection {
-    var titleKey: String {
-        switch self {
-        case .home: return "tab.home"
-        case .files: return "tab.files"
-        case .patches: return "tab.patches"
-        case .cleaner: return "tab.cleaner"
-        case .wallpapers: return "tab.wallpapers"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .home: return "house.fill"
-        case .files: return "folder.fill"
-        case .patches: return "shippingbox.fill"
-        case .cleaner: return "sparkles"
-        case .wallpapers: return "photo.on.rectangle.angled"
-        }
-    }
-}
-
-private struct DashboardView: View {
-    @Environment(\.appLanguage) private var language
-    @EnvironmentObject private var appState: AppState
-    @State private var showSettings = false
-    @State private var showLogs = false
-    @Binding var cleanerEnabled: Bool
-    @Binding var wallpapersEnabled: Bool
-    let wallpapersSupported: Bool
-
-    var body: some View {
-        NavigationStack {
-            List {
-                deviceSection
-                featuresSection
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .tint(AppTheme.accent)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showLogs = true } label: {
-                        Image(systemName: "apple.terminal")
-                    }
-                    .accessibilityLabel(language.text("accessibility.open_logs"))
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showSettings = true } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel(language.text("accessibility.open_settings"))
-                }
-            }
-            .sheet(isPresented: $showSettings) { SettingsView() }
-            .sheet(isPresented: $showLogs) { LogView() }
-        }
-    }
-
-    private var featuresSection: some View {
-        Section {
-            Toggle(isOn: $cleanerEnabled) {
-                Label(language.text("tab.cleaner"), systemImage: "sparkles")
-            }
-            if wallpapersSupported {
-                Toggle(isOn: $wallpapersEnabled) {
-                    Label(language.text("tab.wallpapers"), systemImage: "photo.on.rectangle.angled")
-                }
-            }
-        } header: {
-            Text(language.text("dashboard.features"))
-        } footer: {
-            Text(language.text("dashboard.features_footer"))
-        }
-    }
-
-    private var deviceSection: some View {
-        Section {
-            LabeledContent(language.text("dashboard.hardware_model")) {
-                Text(AppInfo.displayMachineName)
-                    .font(.body.monospaced())
-            }
-            LabeledContent(language.text("settings.ios_version")) {
-                Text("\(AppInfo.osVersion) (\(AppInfo.osBuild))")
-                    .font(.body.monospaced())
-            }
-            HStack {
-                Text(language.text("settings.compatibility"))
-                Spacer()
-                Text(language.text(appState.isSupported ? "settings.supported" : "settings.unsupported"))
-                .foregroundStyle(appState.isSupported ? Color.green : Color.red)
-            }
-
-            if appState.kernelExploitApplicable && AppInfo.versionTuple.major < 26 {
-                HStack {
-                    Text(language.text("dashboard.kernel_status"))
-                    Spacer()
-                    if appState.kernelExploitRunning {
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.small)
-                            Text(language.text("dashboard.kernel_running"))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Text(language.text(appState.exploitStatus.isSuccess ? "dashboard.kernel_active" : "dashboard.kernel_inactive"))
-                        .foregroundStyle(appState.exploitStatus.isSuccess ? Color.green : Color.secondary)
-                    }
-                }
-            }
-        } header: {
-            Text(language.text("common.device"))
-        } footer: {
-            Text(language.text("settings.supported_range_summary"))
-        }
     }
 }
