@@ -8,6 +8,42 @@ private enum PatchPackagePickerPolicy {
     static let copiesSelectedDocument = true
 }
 
+/// Helper centralizado para asignar iconos inteligentes basados en palabras clave y rotación automática
+struct PatchIconHelper {
+    private static let aimIcons = [
+        "scope",
+        "target",
+        "crosshair",
+        "bolt.target"
+    ]
+    
+    private static let holoIcons = [
+        "eye.fill",
+        "cube.transparent",
+        "sparkles",
+        "square.stack.3d.up"
+    ]
+    
+    private static let defaultIcons = [
+        "shippingbox.fill",
+        "doc.zipper",
+        "folder.badge.gearshape",
+        "puzzlepiece.fill"
+    ]
+
+    static func iconName(for name: String, index: Int = 0) -> String {
+        let lowercasedName = name.lowercased()
+        
+        if lowercasedName.contains("aim") || lowercasedName.contains("aimbot") {
+            return aimIcons[index % aimIcons.count]
+        } else if lowercasedName.contains("holo") || lowercasedName.contains("holograma") {
+            return holoIcons[index % holoIcons.count]
+        } else {
+            return defaultIcons[index % defaultIcons.count]
+        }
+    }
+}
+
 struct PatchProjectsView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var draftCoordinator: PatchDraftCoordinator
@@ -178,14 +214,14 @@ struct PatchProjectsView: View {
     private func itemRow(_ item: PatchLibraryItem) -> some View {
         if item.isLocked {
             Button { store.requestUnlock(for: item) } label: {
-                PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
+                PatchProjectRow(item: item, allItems: store.items, language: language, accentColor: currentAccentColor)
             }
             .buttonStyle(.plain)
         } else {
             NavigationLink {
                 PatchProjectDetailView(store: store, projectID: item.id)
             } label: {
-                PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
+                PatchProjectRow(item: item, allItems: store.items, language: language, accentColor: currentAccentColor)
             }
         }
     }
@@ -229,6 +265,7 @@ struct PatchProjectsView: View {
 
 private struct PatchProjectRow: View {
     let item: PatchLibraryItem
+    let allItems: [PatchLibraryItem]
     let language: AppLanguage
     let accentColor: Color
 
@@ -245,9 +282,32 @@ private struct PatchProjectRow: View {
         item.summary.schemaVersion >= 2
     }
 
+    private var calculatedIconName: String {
+        if item.isLocked {
+            return "lock.doc.fill"
+        }
+        let projectName = item.project?.name ?? item.packageURL.deletingPathExtension().lastPathComponent
+        let lowerName = projectName.lowercased()
+        
+        // Calculamos cuántos elementos previos del mismo tipo (aim/holo/default) existen en la lista para el índice de rotación
+        let matchingItems = allItems.filter { other in
+            let otherName = (other.project?.name ?? other.packageURL.deletingPathExtension().lastPathComponent).lowercased()
+            if lowerName.contains("aim") || lowerName.contains("aimbot") {
+                return otherName.contains("aim") || otherName.contains("aimbot")
+            } else if lowerName.contains("holo") || lowerName.contains("holograma") {
+                return otherName.contains("holo") || otherName.contains("holograma")
+            } else {
+                return !otherName.contains("aim") && !otherName.contains("aimbot") && !otherName.contains("holo") && !otherName.contains("holograma")
+            }
+        }
+        
+        let index = matchingItems.firstIndex(where: { $0.id == item.id }) ?? 0
+        return PatchIconHelper.iconName(for: projectName, index: index)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.isLocked ? "lock.doc.fill" : "shippingbox.fill")
+            Image(systemName: calculatedIconName)
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(accentColor)
                 .frame(width: 32, height: 32)
