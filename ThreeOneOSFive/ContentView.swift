@@ -5,6 +5,14 @@ import Combine
 // ==========================================
 // 1. GESTOR DE SESIÓN Y KEYS (AppSessionManager)
 // ==========================================
+struct KeyItem: Identifiable, Codable {
+    var id: String = UUID().uuidString
+    let keyValue: String
+    let creationDate: Date
+    var expirationDate: Date
+    var isRevoked: Bool
+}
+
 class AppSessionManager: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var username: String = ""
@@ -14,6 +22,8 @@ class AppSessionManager: ObservableObject {
     @Published var expirationDate: Date = Date().addingTimeInterval(30 * 24 * 3600)
     @Published var timeRemainingString: String = "Calculando..."
     
+    @Published var savedKeysList: [KeyItem] = []
+    
     private var timer: AnyCancellable?
     
     init() {
@@ -22,6 +32,13 @@ class AppSessionManager: ObservableObject {
     
     func login(user: String, key: String) -> Bool {
         guard !user.isEmpty, !key.isEmpty else { return false }
+        
+        // Validar si la key está revocada o expirada en la lista generada (si existe)
+        if let found = savedKeysList.first(where: { $0.keyValue.lowercased() == key.lowercased() }) {
+            if found.isRevoked || found.expirationDate < Date() {
+                return false
+            }
+        }
         
         self.username = user
         self.currentKey = key
@@ -48,6 +65,22 @@ class AppSessionManager: ObservableObject {
         self.isAdmin = false
     }
     
+    func createKey(value: String, days: Int) {
+        let exp = Date().addingTimeInterval(TimeInterval(days * 24 * 3600))
+        let newItem = KeyItem(keyValue: value, creationDate: Date(), expirationDate: exp, isRevoked: false)
+        savedKeysList.insert(newItem, at: 0)
+    }
+    
+    func revokeKey(id: String) {
+        if let idx = savedKeysList.firstIndex(where: { $0.id == id }) {
+            savedKeysList[idx].isRevoked = true
+        }
+    }
+    
+    func deleteKey(id: String) {
+        savedKeysList.removeAll(with: { $0.id == id })
+    }
+    
     private func startTimer() {
         timer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
@@ -67,6 +100,12 @@ class AppSessionManager: ObservableObject {
             let seconds = Int(remaining) % 60
             timeRemainingString = "\(days)d \(hours)h \(minutes)m \(seconds)s"
         }
+    }
+}
+
+extension Array {
+    mutating func remove(with condition: (Element) -> Bool) {
+        self.removeAll(where: condition)
     }
 }
 
@@ -132,7 +171,7 @@ struct LoginView: View {
                 Button(action: {
                     let success = session.login(user: usernameInput, key: keyInput)
                     if !success {
-                        alertMessage = "Por favor ingresa usuario y key válidos."
+                        alertMessage = "Key inválida, revocada o expirada, o campos vacíos."
                         showAlert = true
                     }
                 }) {
@@ -164,17 +203,16 @@ struct LoginView: View {
 }
 
 // ==========================================
-// 3. VISTA PRINCIPAL (ContentView con tu código de parches 100% original)
+// 3. VISTA PRINCIPAL (ContentView)
 // ==========================================
 struct ContentView: View {
     @StateObject private var session = AppSessionManager()
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @State private var selectedTab = 0
-    @State private var showSettings = false
+    @State private var showSettingsSheet = false
     @State private var showLogs = false
 
-    // Almacenamientos sincronizados
     @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
     @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
 
@@ -182,7 +220,6 @@ struct ContentView: View {
         Group {
             if session.isLoggedIn {
                 ZStack(alignment: .bottom) {
-                    // Fondo dinámico Blanco o Negro a pantalla completa
                     Group {
                         if appBackgroundMode == "black" {
                             Color.black.ignoresSafeArea()
@@ -191,7 +228,6 @@ struct ContentView: View {
                         }
                     }
 
-                    // Contenedor principal de pestañas
                     Group {
                         switch selectedTab {
                         case 0:
@@ -215,10 +251,13 @@ struct ContentView: View {
                             }
                         case 2:
                             NavigationStack {
-                                SettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
+                                FullSettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
                                     .navigationTitle("Configuración")
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
+                                    .toolbar {
+                                        toolbarContent
+                                    }
                             }
                         case 3:
                             if session.isAdmin {
@@ -244,7 +283,6 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     
-                    // Barra de navegación flotante estilo pastilla personalizada
                     HStack(spacing: session.isAdmin ? 16 : 28) {
                         FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab, accentColorHex: accentColorHex)
                         FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab, accentColorHex: accentColorHex)
@@ -266,7 +304,18 @@ struct ContentView: View {
                 .tint(Color(hexString: accentColorHex))
                 .imageScale(.medium)
                 .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
-                .sheet(isPresented: $showSettings) { SettingsView() }
+                .sheet(isPresented: $showSettingsSheet) {
+                    NavigationStack {
+                        FullSettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
+                            .navigationTitle("Configuración")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    Button("Done") { showSettingsSheet = false }
+                                }
+                            }
+                    }
+                }
                 .sheet(isPresented: $showLogs) { LogView() }
                 .environmentObject(session)
             } else {
@@ -285,7 +334,7 @@ struct ContentView: View {
             .accessibilityLabel(language.text("accessibility.open_logs"))
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            Button { showSettings = true } label: {
+            Button { showSettingsSheet = true } label: {
                 Image(systemName: "gearshape")
             }
             .accessibilityLabel(language.text("accessibility.open_settings"))
@@ -293,7 +342,6 @@ struct ContentView: View {
     }
 }
 
-// Botón individual para la pastilla flotante con color dinámico
 private struct FloatingTabButton: View {
     let icon: String
     let title: String
@@ -331,7 +379,7 @@ private enum LibraryTabType {
 }
 
 // ==========================================
-// 4. LIBRERÍA ANTIGUA (100% Intacta tal como la pasaste)
+// 4. LIBRERÍA ANTIGUA (100% Intacta)
 // ==========================================
 struct LibraryDownloadView: View {
     @State private var selectedLibraryTab: LibraryTabType = .aim
@@ -341,7 +389,6 @@ struct LibraryDownloadView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Selector de pestañas AIM / VISUAL dentro de la librería
             HStack(spacing: 12) {
                 Button(action: { selectedLibraryTab = .aim }) {
                     Text("AIM")
@@ -499,9 +546,9 @@ private struct VisualDownloadRow: View {
 }
 
 // ==========================================
-// 5. AJUSTES + INFORMACIÓN DE USUARIO Y BOTÓN DE SALIR
+// 5. CONFIGURACIÓN COMPLETA (Sesión + Tus Ajustes Originales)
 // ==========================================
-struct SettingsContainerView: View {
+struct FullSettingsContainerView: View {
     @EnvironmentObject var session: AppSessionManager
     @Binding var accentColorHex: String
     var appBackgroundMode: String
@@ -514,7 +561,7 @@ struct SettingsContainerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Tarjeta de información de sesión y botón de salida en Ajustes
+                // Tarjeta de sesión actual
                 VStack(spacing: 10) {
                     HStack(spacing: 10) {
                         ZStack {
@@ -574,7 +621,7 @@ struct SettingsContainerView: View {
                         .stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1)
                 )
                 
-                // Tus ajustes originales de la app
+                // Tus ajustes originales completos (incluyendo selectores de color, tema, etc.)
                 SettingsView()
             }
             .padding()
@@ -609,19 +656,21 @@ private struct UserInfoRow: View {
 }
 
 // ==========================================
-// 6. GESTIÓN DE KEYS (Con botones circulares 1, 7, 30 y +)
+// 6. GESTIÓN DE KEYS (Control avanzado: Revocar, Vencer, Eliminar y Custom Text + Días)
 // ==========================================
 struct KeysAdminManagementView: View {
+    @EnvironmentObject var session: AppSessionManager
     @Binding var accentColorHex: String
     var appBackgroundMode: String
-    @State private var customKeyInput: String = ""
+    
+    @State private var customTextPrefix: String = ""
     @State private var customDaysInput: String = ""
-    @State private var showCustomDaysModal: Bool = false
-    @State private var generatedKeysList: [String] = []
+    @State private var showCustomModal: Bool = false
     
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Sección de generación con botones circulares 1, 7, 30 y +
                 VStack(alignment: .leading, spacing: 12) {
                     Text("GENERAR KEYS")
                         .font(.caption)
@@ -629,7 +678,7 @@ struct KeysAdminManagementView: View {
                         .foregroundColor(.gray)
                     
                     HStack(spacing: 12) {
-                        Button(action: { createKeyWithDays(days: 1) }) {
+                        Button(action: { createKeyStandard(days: 1) }) {
                             VStack(spacing: 2) {
                                 Text("1")
                                     .font(.system(size: 16, weight: .bold))
@@ -642,7 +691,7 @@ struct KeysAdminManagementView: View {
                             .clipShape(Circle())
                         }
                         
-                        Button(action: { createKeyWithDays(days: 7) }) {
+                        Button(action: { createKeyStandard(days: 7) }) {
                             VStack(spacing: 2) {
                                 Text("7")
                                     .font(.system(size: 16, weight: .bold))
@@ -655,7 +704,7 @@ struct KeysAdminManagementView: View {
                             .clipShape(Circle())
                         }
                         
-                        Button(action: { createKeyWithDays(days: 30) }) {
+                        Button(action: { createKeyStandard(days: 30) }) {
                             VStack(spacing: 2) {
                                 Text("30")
                                     .font(.system(size: 16, weight: .bold))
@@ -670,7 +719,7 @@ struct KeysAdminManagementView: View {
                         
                         Spacer()
                         
-                        Button(action: { showCustomDaysModal = true }) {
+                        Button(action: { showCustomModal = true }) {
                             Image(systemName: "plus")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
@@ -682,14 +731,14 @@ struct KeysAdminManagementView: View {
                     .padding(.vertical, 4)
                     
                     HStack(spacing: 8) {
-                        TextField("Escribe texto personalizado", text: $customKeyInput)
+                        TextField("Texto personalizado (ej. 123)", text: $customTextPrefix)
                             .padding()
                             .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
                             .cornerRadius(10)
                             .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                         
                         Button(action: {
-                            createCustomTextKey()
+                            createCustomKeyWithDefaultDays()
                         }) {
                             Text("Crear")
                                 .font(.subheadline.bold())
@@ -706,41 +755,96 @@ struct KeysAdminManagementView: View {
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1))
                 
+                // Listado de Keys con opciones de control total
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("KEYS ACTIVAS")
+                        Text("KEYS ACTIVAS Y REGISTRO")
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.gray)
                         Spacer()
-                        Text("\(generatedKeysList.count) Totales")
+                        Text("\(session.savedKeysList.count) Totales")
                             .font(.caption)
                             .foregroundColor(Color(hexString: accentColorHex))
                     }
                     
-                    if generatedKeysList.isEmpty {
+                    if session.savedKeysList.isEmpty {
                         Text("No hay keys generadas aún.")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 20)
                     } else {
-                        ForEach(generatedKeysList, id: \.self) { key in
-                            HStack {
-                                Text(key)
-                                    .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                                    .font(.system(size: 13, design: .monospaced))
-                                Spacer()
-                                Button(action: {
-                                    UIPasteboard.general.string = key
-                                }) {
-                                    Image(systemName: "doc.on.doc")
-                                        .foregroundColor(Color(hexString: accentColorHex))
+                        ForEach(session.savedKeysList) { item in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text(item.keyValue)
+                                        .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
+                                        .font(.system(size: 13, design: .monospaced).bold())
+                                    
+                                    Spacer()
+                                    
+                                    if item.isRevoked {
+                                        Text("REVOCADA")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.red)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.red.opacity(0.2))
+                                            .cornerRadius(4)
+                                    } else if item.expirationDate < Date() {
+                                        Text("EXPIRADA")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.orange)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.orange.opacity(0.2))
+                                            .cornerRadius(4)
+                                    } else {
+                                        Text("ACTIVA")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.green)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.green.opacity(0.2))
+                                            .cornerRadius(4)
+                                    }
+                                }
+                                
+                                HStack(spacing: 12) {
+                                    Button(action: {
+                                        UIPasteboard.general.string = item.keyValue
+                                    }) {
+                                        Label("Copiar", systemImage: "doc.on.doc")
+                                            .font(.system(size: 11))
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    if !item.isRevoked {
+                                        Button(action: {
+                                            session.revokeKey(id: item.id)
+                                        }) {
+                                            Label("Revocar", systemImage: "xmark.shield")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.orange)
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        session.deleteKey(id: item.id)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 13))
+                                    }
                                 }
                             }
                             .padding()
                             .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
-                            .cornerRadius(8)
+                            .cornerRadius(10)
                         }
                     }
                 }
@@ -751,36 +855,40 @@ struct KeysAdminManagementView: View {
             }
             .padding()
         }
-        .alert("Añadir Días Personalizados", isPresented: $showCustomDaysModal) {
-            TextField("Número de días (ej. 15)", text: $customDaysInput)
+        .alert("Key Personalizada con Días", isPresented: $showCustomModal) {
+            TextField("Texto de Key (ej. 123)", text: $customTextPrefix)
+            TextField("Cantidad de días (ej. 7)", text: $customDaysInput)
                 .keyboardType(.numberPad)
-            Button("Generar") {
-                if let days = Int(customDaysInput), days > 0 {
-                    createKeyWithDays(days: days)
+            Button("Crear Key") {
+                if let days = Int(customDaysInput), days > 0, !customTextPrefix.trimmingCharacters(in: .whitespaces).isEmpty {
+                    let formatted = customTextPrefix.uppercased().replacingOccurrences(of: " ", with: "-")
+                    session.createKey(value: formatted, days: days)
+                    customTextPrefix = ""
                     customDaysInput = ""
                 }
             }
             Button("Cancelar", role: .cancel) {
+                customTextPrefix = ""
                 customDaysInput = ""
             }
         } message: {
-            Text("Ingresa la cantidad de días de vigencia para esta Key.")
+            Text("Ingresa el texto personalizado (por ejemplo '123') y los días de vigencia exactos.")
         }
     }
     
-    private func createKeyWithDays(days: Int) {
-        let part1 = randomString(length: 3)
-        let part2 = randomString(length: 3)
-        let newKey = "DARIEL-\(days)D-\(part1)-\(part2)"
-        generatedKeysList.insert(newKey, at: 0)
+    private func createKeyStandard(days: Int) {
+        let p1 = randomString(length: 3)
+        let p2 = randomString(length: 3)
+        let newKey = "DARIEL-\(days)D-\(p1)-\(p2)"
+        session.createKey(value: newKey, days: days)
     }
     
-    private func createCustomTextKey() {
-        guard !customKeyInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let formatted = customKeyInput.uppercased().replacingOccurrences(of: " ", with: "-")
-        let newKey = "DARIEL-\(formatted)"
-        generatedKeysList.insert(newKey, at: 0)
-        customKeyInput = ""
+    private func createCustomKeyWithDefaultDays() {
+        guard !customTextPrefix.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let formatted = customTextPrefix.uppercased().replacingOccurrences(of: " ", with: "-")
+        // Si ingresó texto personalizado como "123", por defecto lo creamos a 7 días (o puedes cambiarlo)
+        session.createKey(value: formatted, days: 7)
+        customTextPrefix = ""
     }
     
     private func randomString(length: Int) -> String {
