@@ -26,7 +26,7 @@ struct AppLanguageKey: EnvironmentKey {
     static let defaultValue: AppLanguageMock = AppLanguageMock()
 }
 
-// Extensión de Color para soportar códigos Hex (si no la tienes declarada en otra parte)
+// Extensión de Color para soportar códigos Hex (Por si no lo tenías arriba)
 extension Color {
     init(hexString: String) {
         let hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -215,12 +215,11 @@ struct LoginView: View {
 }
 
 // ==========================================
-// 3. VISTA PRINCIPAL (ContentView con tu código de parches 100% original)
+// 3. VISTA PRINCIPAL (ContentView con tu código original)
 // ==========================================
 struct ContentView: View {
     @StateObject private var session = AppSessionManager()
     @Environment(\.appLanguage) private var language
-    @State private var patchDraftCoordinatorDummy = PatchDraftCoordinator()
     @State private var selectedTab = 0
     @State private var showSettings = false
     @State private var showLogs = false
@@ -247,7 +246,7 @@ struct ContentView: View {
                         switch selectedTab {
                         case 0:
                             NavigationStack {
-                                PatchProjectsView()
+                                PatchProjectsView(accentColorHex: $accentColorHex)
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
                                     .toolbar {
@@ -284,13 +283,13 @@ struct ContentView: View {
                                 }
                             } else {
                                 NavigationStack {
-                                    PatchProjectsView()
+                                    PatchProjectsView(accentColorHex: $accentColorHex)
                                         .navigationBarTitleDisplayMode(.inline)
                                         .tint(Color(hexString: accentColorHex))
                                 }
                             }
                         default:
-                            PatchProjectsView()
+                            PatchProjectsView(accentColorHex: $accentColorHex)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -382,7 +381,7 @@ private enum LibraryTabType {
 }
 
 // ==========================================
-// 4. LIBRERÍA ANTIGUA (100% Intacta tal como la pasaste)
+// 4. LIBRERÍA (Con extensión actualizada a .darielexternal)
 // ==========================================
 struct LibraryDownloadView: View {
     @State private var selectedLibraryTab: LibraryTabType = .aim
@@ -421,29 +420,29 @@ struct LibraryDownloadView: View {
                 if selectedLibraryTab == .aim {
                     Section(header: Text("Aims y Modificaciones")) {
                         DownloadRow(title: "Aimbot Pecho", description: "Apunta automáticamente al torso del enemigo.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotPecho.3105", displayName: "Aimbot Pecho")
+                            downloadAndSavePatch(fileName: "AimbotPecho.darielexternal", displayName: "Aimbot Pecho")
                         }
                         
                         DownloadRow(title: "Aimbot Cuello", description: "Calibración de precisión directa al cuello.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotCuello.3105", displayName: "Aimbot Cuello")
+                            downloadAndSavePatch(fileName: "AimbotCuello.darielexternal", displayName: "Aimbot Cuello")
                         }
                         
                         DownloadRow(title: "Aimbot Drag", description: "Mejora la velocidad de arrastre de mira.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotDrag.3105", displayName: "Aimbot Drag")
+                            downloadAndSavePatch(fileName: "AimbotDrag.darielexternal", displayName: "Aimbot Drag")
                         }
                     }
                 } else {
                     Section(header: Text("Opciones Visuales")) {
                         VisualDownloadRow(title: "Holo Armas Celeste", description: "Efecto holográfico celeste para armas.", icon: "sparkles", color: .cyan, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloCeleste.3105", displayName: "Holo Armas Celeste")
+                            downloadAndSavePatch(fileName: "HoloCeleste.darielexternal", displayName: "Holo Armas Celeste")
                         }
                         
                         VisualDownloadRow(title: "Holo Armas Amarillo", description: "Efecto holográfico amarillo para armas.", icon: "sparkles", color: .yellow, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloAmarillo.3105", displayName: "Holo Armas Amarillo")
+                            downloadAndSavePatch(fileName: "HoloAmarillo.darielexternal", displayName: "Holo Armas Amarillo")
                         }
                         
                         VisualDownloadRow(title: "Holo Armas Verde", description: "Efecto holográfico verde para armas.", icon: "sparkles", color: .green, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloVerde.3105", displayName: "Holo Armas Verde")
+                            downloadAndSavePatch(fileName: "HoloVerde.darielexternal", displayName: "Holo Armas Verde")
                         }
                     }
                 }
@@ -465,7 +464,7 @@ struct LibraryDownloadView: View {
             let targetFile = patchesDir.appendingPathComponent(fileName)
             
             if !fileManager.fileExists(atPath: targetFile.path) {
-                let sampleData = "DATA_3105_PATCH".data(using: .utf8) ?? Data()
+                let sampleData = "DATA_DARIEL_EXTERNAL_PATCH".data(using: .utf8) ?? Data()
                 try sampleData.write(to: targetFile)
             }
             
@@ -546,6 +545,38 @@ private struct VisualDownloadRow: View {
             .buttonStyle(BorderlessButtonStyle())
         }
         .padding(.vertical, 4)
+    }
+}
+
+// ==========================================
+// 4.1. VISTA DE PARCHES (Con Toggles tintados al color de configuración)
+// ==========================================
+struct PatchItem: Identifiable {
+    let id = UUID()
+    let name: String
+    var isEnabled: Bool
+}
+
+struct PatchProjectsView: View {
+    @Binding var accentColorHex: String
+    @State private var patches: [PatchItem] = [
+        PatchItem(name: "Aimbot Pecho", isEnabled: false),
+        PatchItem(name: "Aimbot Cuello", isEnabled: false),
+        PatchItem(name: "Holo Armas Celeste", isEnabled: true)
+    ]
+    
+    var body: some View {
+        List {
+            Section(header: Text("Parches Activos / Instalados")) {
+                ForEach($patches) { $patch in
+                    Toggle(patch.name, isOn: $patch.isEnabled)
+                        // Aplicamos el color de acento elegido en configuración al interruptor encendido
+                        .tint(Color(hexString: accentColorHex))
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+        .navigationTitle("Parches")
     }
 }
 
@@ -790,7 +821,7 @@ struct KeysAdminManagementView: View {
                                 }
                             }
                             .padding()
-                            .background(appBackgroundMode == "black" ?Color(white: 0.15) : Color(.systemGray6))
+                            .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
                             .cornerRadius(8)
                         }
                     }
