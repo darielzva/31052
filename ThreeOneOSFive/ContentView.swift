@@ -216,7 +216,7 @@ struct ContentView: View {
                         case 3:
                             if session.isAdmin {
                                 NavigationStack {
-                                    KeysAdminManagementView(accentColorHex: $accentColorHex)
+                                    KeysAdminManagementView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
                                         .navigationTitle("Gestión de Keys")
                                         .navigationBarTitleDisplayMode(.inline)
                                         .tint(Color(hexString: accentColorHex))
@@ -394,10 +394,11 @@ private struct UserInfoRow: View {
 }
 
 // ==========================================
-// 5. GESTIÓN DE KEYS PARA ADMIN
+// 5. GESTIÓN DE KEYS PARA ADMIN (Corregido con botones circulares)
 // ==========================================
 struct KeysAdminManagementView: View {
     @Binding var accentColorHex: String
+    var appBackgroundMode: String
     @State private var customKeyInput: String = ""
     @State private var customDaysInput: String = ""
     @State private var showCustomDaysModal: Bool = false
@@ -412,27 +413,66 @@ struct KeysAdminManagementView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.gray)
                     
-                    HStack(spacing: 8) {
-                        Button(action: { createDefaultKey() }) {
-                            Text("Generar Automática").adminKeyBtnStyle(accent: accentColorHex)
+                    // Círculos de días (1, 7, 30) y el botón con el más (+) al lado
+                    HStack(spacing: 12) {
+                        Button(action: { createKeyWithDays(days: 1) }) {
+                            VStack(spacing: 2) {
+                                Text("1")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Día")
+                                    .font(.system(size: 9))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 52, height: 52)
+                            .background(Color(hexString: accentColorHex))
+                            .clipShape(Circle())
                         }
+                        
+                        Button(action: { createKeyWithDays(days: 7) }) {
+                            VStack(spacing: 2) {
+                                Text("7")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Días")
+                                    .font(.system(size: 9))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 52, height: 52)
+                            .background(Color(hexString: accentColorHex))
+                            .clipShape(Circle())
+                        }
+                        
+                        Button(action: { createKeyWithDays(days: 30) }) {
+                            VStack(spacing: 2) {
+                                Text("30")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Días")
+                                    .font(.system(size: 9))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 52, height: 52)
+                            .background(Color(hexString: accentColorHex))
+                            .clipShape(Circle())
+                        }
+                        
+                        Spacer()
                         
                         Button(action: { showCustomDaysModal = true }) {
                             Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 52, height: 52)
                                 .background(Color(hexString: accentColorHex))
                                 .clipShape(Circle())
                         }
                     }
+                    .padding(.vertical, 4)
                     
                     HStack(spacing: 8) {
                         TextField("Escribe texto personalizado", text: $customKeyInput)
                             .padding()
-                            .background(Color(white: 0.15))
+                            .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
                             .cornerRadius(10)
-                            .foregroundColor(.white)
+                            .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                         
                         Button(action: {
                             createCustomTextKey()
@@ -448,8 +488,9 @@ struct KeysAdminManagementView: View {
                     }
                 }
                 .padding(16)
-                .background(Color(white: 0.1))
+                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
                 .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1))
                 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -473,7 +514,7 @@ struct KeysAdminManagementView: View {
                         ForEach(generatedKeysList, id: \.self) { key in
                             HStack {
                                 Text(key)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                                     .font(.system(size: 13, design: .monospaced))
                                 Spacer()
                                 Button(action: {
@@ -484,14 +525,15 @@ struct KeysAdminManagementView: View {
                                 }
                             }
                             .padding()
-                            .background(Color(white: 0.15))
+                            .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
                             .cornerRadius(8)
                         }
                     }
                 }
                 .padding(16)
-                .background(Color(white: 0.1))
+                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
                 .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1))
             }
             .padding()
         }
@@ -512,16 +554,10 @@ struct KeysAdminManagementView: View {
         }
     }
     
-    private func createDefaultKey() {
-        let part1 = randomString(length: 3)
-        let part2 = randomString(length: 3)
-        let newKey = "DARIEL-MDZ-\(part1)-\(part2)"
-        generatedKeysList.insert(newKey, at: 0)
-    }
-    
     private func createKeyWithDays(days: Int) {
         let part1 = randomString(length: 3)
-        let newKey = "DARIEL-\(days)D-\(part1)"
+        let part2 = randomString(length: 3)
+        let newKey = "DARIEL-\(days)D-\(part1)-\(part2)"
         generatedKeysList.insert(newKey, at: 0)
     }
     
@@ -539,20 +575,8 @@ struct KeysAdminManagementView: View {
     }
 }
 
-private extension View {
-    func adminKeyBtnStyle(accent: String) -> some View {
-        self.font(.system(size: 13, weight: .bold))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color(white: 0.15))
-            .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(hexString: accent).opacity(0.5), lineWidth: 1))
-    }
-}
-
 // ==========================================
-// 6. BOTÓN FLOTANTE Y LIBRERÍA
+// 6. LIBRERÍA Y DESCARGA DIRECTA A PARCHES
 // ==========================================
 private struct FloatingTabButton: View {
     let icon: String
@@ -658,19 +682,18 @@ struct LibraryDownloadView: View {
     private func downloadAndSavePatch(fileName: String, displayName: String) {
         let fileManager = FileManager.default
         guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let patchesDir = documentsPath.appendingPathComponent("Patches").appendingPathComponent(displayName)
+        
+        // CORRECCIÓN: Guardar directamente donde PatchProjectsView lo lee correctamente (en Documents/ o en la ruta raíz de proyectos)
+        let targetFile = documentsPath.appendingPathComponent(fileName)
         
         do {
-            try fileManager.createDirectory(at: patchesDir, withIntermediateDirectories: true, attributes: nil)
-            let targetFile = patchesDir.appendingPathComponent(fileName)
-            if !fileManager.fileExists(atPath: targetFile.path) {
-                let sampleData = "DATA_3105_PATCH".data(using: .utf8) ?? Data()
-                try sampleData.write(to: targetFile)
-            }
-            alertMessage = "Archivo \(displayName) descargado con éxito."
+            let sampleData = "DATA_3105_PATCH".data(using: .utf8) ?? Data()
+            try sampleData.write(to: targetFile)
+            
+            alertMessage = "¡\(displayName) importado correctamente a tus parches!"
             showAlert = true
         } catch {
-            alertMessage = "Error al guardar el archivo."
+            alertMessage = "Error al guardar el parche."
             showAlert = true
         }
     }
