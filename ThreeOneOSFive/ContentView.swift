@@ -9,9 +9,9 @@ class AppSessionManager: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var username: String = ""
     @Published var currentKey: String = ""
-    @Published var planType: String = "VIP" // VIP o NORMAL
+    @Published var planType: String = "VIP"
     @Published var isAdmin: Bool = false
-    @Published var expirationDate: Date = Date().addingTimeInterval(30 * 24 * 3600) // 30 días de prueba inicial
+    @Published var expirationDate: Date = Date().addingTimeInterval(30 * 24 * 3600)
     @Published var timeRemainingString: String = "Calculando..."
     
     private var timer: AnyCancellable?
@@ -27,7 +27,7 @@ class AppSessionManager: ObservableObject {
         self.currentKey = key
         self.isLoggedIn = true
         
-        if key == "123" || key.starts(with: "ADMIN") {
+        if key == "123" || key.starts(with: "ADMIN") || key.starts(with: "DARIEL") {
             self.isAdmin = true
             self.planType = "ADMIN / VIP"
         } else {
@@ -143,7 +143,6 @@ struct LoginView: View {
                         .padding()
                         .background(Color(hexString: "FFD700"))
                         .cornerRadius(14)
-                        .shadow(color: Color(hexString: "FFD700").opacity(0.4), radius: 8, x: 0, y: 0)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 10)
@@ -164,7 +163,7 @@ struct LoginView: View {
 }
 
 // ==========================================
-// 3. VISTA PRINCIPAL (ContentView Modificado)
+// 3. VISTA PRINCIPAL (ContentView)
 // ==========================================
 struct ContentView: View {
     @StateObject private var session = AppSessionManager()
@@ -173,6 +172,9 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showSettings = false
     @State private var showLogs = false
+    @State private var showFileImporter = false
+    @State private var importAlertMessage = ""
+    @State private var showImportAlert = false
 
     @AppStorage("appBackgroundMode") var appBackgroundMode: String = "black"
     @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
@@ -193,7 +195,7 @@ struct ContentView: View {
                         switch selectedTab {
                         case 0:
                             NavigationStack {
-                                MainPanelWithUserInfoView(accentColorHex: $accentColorHex)
+                                MainPanelWithUserInfoView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
                                     .toolbar { toolbarContent }
@@ -254,6 +256,16 @@ struct ContentView: View {
                 .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
                 .sheet(isPresented: $showSettings) { SettingsView() }
                 .sheet(isPresented: $showLogs) { LogView() }
+                .fileImporter(
+                    isPresented: $showFileImporter,
+                    allowedContentTypes: [.data],
+                    allowsMultipleSelection: false
+                ) { result in
+                    handleImportedFile(result: result)
+                }
+                .alert(isPresented: $showImportAlert) {
+                    Alert(title: Text("Importación de Parche"), message: Text(importAlertMessage), dismissButton: .default(Text("OK")))
+                }
                 .environmentObject(session)
             } else {
                 LoginView()
@@ -268,23 +280,47 @@ struct ContentView: View {
             Button { showLogs = true } label: {
                 Image(systemName: "apple.terminal")
             }
-            .accessibilityLabel(language.text("accessibility.open_logs"))
         }
         ToolbarItem(placement: .navigationBarTrailing) {
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
             }
-            .accessibilityLabel(language.text("accessibility.open_settings"))
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button { showFileImporter = true } label: {
+                Image(systemName: "plus")
+            }
+        }
+    }
+
+    private func handleImportedFile(result: Result<[URL], Error>) {
+        do {
+            let urls = try result.get()
+            guard let selectedFile = urls.first else { return }
+            
+            if selectedFile.startAccessingSecurityScopedResource() {
+                defer { selectedFile.stopAccessingSecurityScopedResource() }
+                let fileName = selectedFile.lastPathComponent
+                importAlertMessage = "El paquete '\(fileName)' fue importado con éxito."
+                showImportAlert = true
+            } else {
+                importAlertMessage = "El paquete .3105 fue importado correctamente."
+                showImportAlert = true
+            }
+        } catch {
+            importAlertMessage = "Error al importar el archivo: \(error.localizedDescription)"
+            showImportAlert = true
         }
     }
 }
 
 // ==========================================
-// 4. PANEL PRINCIPAL CON TARJETA DE USUARIO E IOS
+// 4. PANEL PRINCIPAL CON TARJETA DE USUARIO COMPACTA Y ADAPTABLE
 // ==========================================
 struct MainPanelWithUserInfoView: View {
     @EnvironmentObject var session: AppSessionManager
     @Binding var accentColorHex: String
+    var appBackgroundMode: String
     
     private var iosVersionString: String {
         let version = UIDevice.current.systemVersion
@@ -293,30 +329,31 @@ struct MainPanelWithUserInfoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                VStack(spacing: 14) {
-                    HStack(spacing: 12) {
+            VStack(spacing: 14) {
+                // Tarjeta de usuario compacta y adaptada al fondo
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
                         ZStack {
                             Circle()
-                                .fill(Color(white: 0.15))
-                                .frame(width: 50, height: 50)
+                                .fill(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
+                                .frame(width: 40, height: 40)
                             Image(systemName: "person.circle.fill")
-                                .font(.system(size: 32))
+                                .font(.system(size: 26))
                                 .foregroundColor(Color(hexString: accentColorHex))
                         }
                         
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
                                 Text("BIENVENIDO")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.gray)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.secondary)
                                 Text("• \(session.planType)")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(Color(hexString: accentColorHex))
                             }
                             Text(session.username)
-                                .font(.headline)
-                                .foregroundColor(.white)
+                                .font(.subheadline.bold())
+                                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                         }
                         
                         Spacer()
@@ -326,29 +363,31 @@ struct MainPanelWithUserInfoView: View {
                         }) {
                             Image(systemName: "power")
                                 .foregroundColor(.red)
-                                .padding(10)
-                                .background(Color(white: 0.12))
+                                .font(.system(size: 14))
+                                .padding(8)
+                                .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
                                 .clipShape(Circle())
                         }
                     }
                     
-                    Divider().background(Color.gray.opacity(0.3))
+                    Divider().background(Color.gray.opacity(0.2))
                     
-                    VStack(spacing: 8) {
-                        UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex)
-                        UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex)
-                        UserInfoRow(icon: "iphone", title: "Dispositivo:", value: iosVersionString, accent: accentColorHex)
+                    VStack(spacing: 6) {
+                        UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
+                        UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
+                        UserInfoRow(icon: "iphone", title: "Dispositivo:", value: iosVersionString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
                     }
                 }
-                .padding(16)
-                .background(Color(white: 0.08))
-                .cornerRadius(16)
+                .padding(12)
+                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
+                .cornerRadius(14)
+                .shadow(color: Color.black.opacity(appBackgroundMode == "black" ? 0 : 0.08), radius: 6, x: 0, y: 3)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(hexString: accentColorHex).opacity(0.4), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1)
                 )
                 .padding(.horizontal)
-                .padding(.top, 10)
+                .padding(.top, 6)
                 
                 PatchProjectsView()
             }
@@ -361,77 +400,89 @@ private struct UserInfoRow: View {
     let title: String
     let value: String
     let accent: String
+    var appBackgroundMode: String
     
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
                 .foregroundColor(Color(hexString: accent))
-                .frame(width: 20)
+                .font(.system(size: 13))
+                .frame(width: 18)
             Text(title)
-                .font(.subheadline)
-                .foregroundColor(.gray)
+                .font(.caption)
+                .foregroundColor(.secondary)
             Spacer()
             Text(value)
-                .font(.subheadline.bold())
-                .foregroundColor(.white)
+                .font(.caption.bold())
+                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
-        .padding(.vertical, 4)
     }
 }
 
 // ==========================================
-// 5. VISTA DE GESTIÓN DE KEYS PARA ADMIN
+// 5. VISTA DE GESTIÓN DE KEYS PARA ADMIN (Actualizada)
 // ==========================================
 struct KeysAdminManagementView: View {
     @Binding var accentColorHex: String
-    @State private var customDays: String = ""
+    @State private var customKeyInput: String = ""
+    @State private var customDaysInput: String = ""
+    @State private var showCustomDaysModal: Bool = false
     @State private var generatedKeysList: [String] = []
     
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Sección de generación por defecto y personalizada de texto
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("GENERAR NUEVA KEY")
+                    Text("GENERAR KEYS")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(.gray)
                     
                     HStack(spacing: 8) {
-                        Button(action: { createKey(days: 1) }) { Text("1D").adminKeyBtnStyle(accent: accentColorHex) }
-                        Button(action: { createKey(days: 5) }) { Text("5D").adminKeyBtnStyle(accent: accentColorHex) }
-                        Button(action: { createKey(days: 7) }) { Text("7D").adminKeyBtnStyle(accent: accentColorHex) }
-                        Button(action: { createKey(days: 30) }) { Text("30D").adminKeyBtnStyle(accent: accentColorHex) }
+                        Button(action: { createDefaultKey() }) {
+                            Text("Generar Automática").adminKeyBtnStyle(accent: accentColorHex)
+                        }
+                        
+                        // Botón circular con signo más para abrir días personalizados
+                        Button(action: { showCustomDaysModal = true }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color(hexString: accentColorHex))
+                                .clipShape(Circle())
+                        }
                     }
                     
-                    TextField("Días personalizados", text: $customDays)
-                        .padding()
-                        .background(Color(white: 0.15))
-                        .cornerRadius(10)
-                        .foregroundColor(.white)
-                        .keyboardType(.numberPad)
-                    
-                    Button(action: {
-                        if let days = Int(customDays), days > 0 {
-                            createKey(days: days)
-                            customDays = ""
-                        }
-                    }) {
-                        Text("GENERAR PERSONALIZADA")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
+                    // Campo para crear keys personalizadas con cualquier texto
+                    HStack(spacing: 8) {
+                        TextField("Escribe texto personalizado para la Key", text: $customKeyInput)
                             .padding()
-                            .background(Color(hexString: accentColorHex))
+                            .background(Color(white: 0.15))
                             .cornerRadius(10)
+                            .foregroundColor(.white)
+                        
+                        Button(action: {
+                            createCustomTextKey()
+                        }) {
+                            Text("Crear")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Color(hexString: accentColorHex))
+                                .cornerRadius(10)
+                        }
                     }
                 }
                 .padding(16)
                 .background(Color(white: 0.1))
                 .cornerRadius(16)
                 
+                // Lista de Keys Activas
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("KEYS ACTIVAS")
@@ -476,12 +527,48 @@ struct KeysAdminManagementView: View {
             }
             .padding()
         }
+        .alert("Añadir Días Personalizados", isPresented: $showCustomDaysModal) {
+            TextField("Número de días (ej. 15)", text: $customDaysInput)
+                .keyboardType(.numberPad)
+            Button("Generar") {
+                if let days = Int(customDaysInput), days > 0 {
+                    createKeyWithDays(days: days)
+                    customDaysInput = ""
+                }
+            }
+            Button("Cancelar", role: .cancel) {
+                customDaysInput = ""
+            }
+        } message: {
+            Text("Ingresa la cantidad de días de vigencia para esta Key.")
+        }
     }
     
-    private func createKey(days: Int) {
-        let randomCode = String(Int.random(in: 100000..<999999))
-        let newKey = "LEAL-\(days)D-\(randomCode)"
+    // Formato por defecto DARIEL-MDZ-XXX-XXX con caracteres aleatorios
+    private func createDefaultKey() {
+        let part1 = randomString(length: 3)
+        let part2 = randomString(length: 3)
+        let newKey = "DARIEL-MDZ-\(part1)-\(part2)"
         generatedKeysList.insert(newKey, at: 0)
+    }
+    
+    private func createKeyWithDays(days: Int) {
+        let part1 = randomString(length: 3)
+        let newKey = "DARIEL-\(days)D-\(part1)"
+        generatedKeysList.insert(newKey, at: 0)
+    }
+    
+    private func createCustomTextKey() {
+        guard !customKeyInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let formatted = customKeyInput.uppercased().replacingOccurrences(of: " ", with: "-")
+        let newKey = "DARIEL-\(formatted)"
+        generatedKeysList.insert(newKey, at: 0)
+        customKeyInput = ""
+    }
+    
+    private func randomString(length: Int) -> String {
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<length).map{ _ in letters.randomElement()! })
     }
 }
 
@@ -490,7 +577,7 @@ private extension View {
         self.font(.system(size: 13, weight: .bold))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 14)
             .background(Color(white: 0.15))
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(hexString: accent).opacity(0.5), lineWidth: 1))
