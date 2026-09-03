@@ -103,7 +103,7 @@ struct PatchProjectsView: View {
                         Button {
                             showImporter = true
                         } label: {
-                            Label(language.text("patch.import"), systemImage: "square.and.arrow.down")
+                            Label("Import .3105", systemImage: "square.and.arrow.down")
                         }
                     } label: {
                         if store.isBusy {
@@ -279,7 +279,7 @@ private struct PatchProjectRow: View {
                     .stroke(accentColor, lineWidth: 1)
                     .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.15)))
                     .frame(width: 36, height: 36)
-                
+                 
                 Image(systemName: dynamicIconName)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(accentColor)
@@ -811,8 +811,5 @@ private struct PatchActivityView: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
 
-    func updateUIViewController(
-        _ uiViewController: UIActivityViewController,
-        context: Context
-    ) {}
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
