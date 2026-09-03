@@ -164,7 +164,7 @@ struct LoginView: View {
 }
 
 // ==========================================
-// 3. VISTA PRINCIPAL (ContentView con tu lógica de parches original intacta)
+// 3. VISTA PRINCIPAL (ContentView con tu código de parches 100% original)
 // ==========================================
 struct ContentView: View {
     @StateObject private var session = AppSessionManager()
@@ -196,7 +196,7 @@ struct ContentView: View {
                         switch selectedTab {
                         case 0:
                             NavigationStack {
-                                MainPanelWithUserInfoView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
+                                PatchProjectsView()
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
                                     .toolbar {
@@ -215,7 +215,7 @@ struct ContentView: View {
                             }
                         case 2:
                             NavigationStack {
-                                SettingsView()
+                                SettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
                                     .navigationTitle("Configuración")
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
@@ -293,114 +293,6 @@ struct ContentView: View {
     }
 }
 
-// ==========================================
-// 4. PANEL PRINCIPAL CON TARJETA DE USUARIO + TU CÓDIGO ORIGINAL DE PARCHES
-// ==========================================
-struct MainPanelWithUserInfoView: View {
-    @EnvironmentObject var session: AppSessionManager
-    @Binding var accentColorHex: String
-    var appBackgroundMode: String
-    
-    private var iosVersionString: String {
-        let version = UIDevice.current.systemVersion
-        return "iOS \(version)"
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                // Tarjeta de información de usuario integrada
-                VStack(spacing: 10) {
-                    HStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
-                                .frame(width: 40, height: 40)
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 26))
-                                .foregroundColor(Color(hexString: accentColorHex))
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text("BIENVENIDO")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.secondary)
-                                Text("• \(session.planType)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(Color(hexString: accentColorHex))
-                            }
-                            Text(session.username)
-                                .font(.subheadline.bold())
-                                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            session.logout()
-                        }) {
-                            Image(systemName: "power")
-                                .foregroundColor(.red)
-                                .font(.system(size: 14))
-                                .padding(8)
-                                .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
-                                .clipShape(Circle())
-                        }
-                    }
-                    
-                    Divider().background(Color.gray.opacity(0.2))
-                    
-                    VStack(spacing: 6) {
-                        UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
-                        UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
-                        UserInfoRow(icon: "iphone", title: "Dispositivo:", value: iosVersionString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
-                    }
-                }
-                .padding(12)
-                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
-                .cornerRadius(14)
-                .shadow(color: Color.black.opacity(appBackgroundMode == "black" ? 0 : 0.08), radius: 6, x: 0, y: 3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1)
-                )
-                .padding(.horizontal)
-                .padding(.top, 6)
-                
-                // Tu vista de proyectos y parches original tal cual la tenías
-                PatchProjectsView()
-            }
-        }
-    }
-}
-
-private struct UserInfoRow: View {
-    let icon: String
-    let title: String
-    let value: String
-    let accent: String
-    var appBackgroundMode: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(Color(hexString: accent))
-                .font(.system(size: 13))
-                .frame(width: 18)
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption.bold())
-                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        }
-    }
-}
-
 // Botón individual para la pastilla flotante con color dinámico
 private struct FloatingTabButton: View {
     let icon: String
@@ -439,7 +331,7 @@ private enum LibraryTabType {
 }
 
 // ==========================================
-// 5. LIBRERÍA ANTIGUA (100% Intacta tal como la pasaste)
+// 4. LIBRERÍA ANTIGUA (100% Intacta tal como la pasaste)
 // ==========================================
 struct LibraryDownloadView: View {
     @State private var selectedLibraryTab: LibraryTabType = .aim
@@ -603,6 +495,116 @@ private struct VisualDownloadRow: View {
             .buttonStyle(BorderlessButtonStyle())
         }
         .padding(.vertical, 4)
+    }
+}
+
+// ==========================================
+// 5. AJUSTES + INFORMACIÓN DE USUARIO Y BOTÓN DE SALIR
+// ==========================================
+struct SettingsContainerView: View {
+    @EnvironmentObject var session: AppSessionManager
+    @Binding var accentColorHex: String
+    var appBackgroundMode: String
+    
+    private var iosVersionString: String {
+        let version = UIDevice.current.systemVersion
+        return "iOS \(version)"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Tarjeta de información de sesión y botón de salida en Ajustes
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 26))
+                                .foregroundColor(Color(hexString: accentColorHex))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text("SESIÓN ACTUAL")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.secondary)
+                                Text("• \(session.planType)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(Color(hexString: accentColorHex))
+                            }
+                            Text(session.username)
+                                .font(.subheadline.bold())
+                                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            session.logout()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "power")
+                                Text("Salir")
+                                    .font(.caption.bold())
+                            }
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.red.opacity(0.15))
+                            .cornerRadius(8)
+                        }
+                    }
+                    
+                    Divider().background(Color.gray.opacity(0.2))
+                    
+                    VStack(spacing: 6) {
+                        UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
+                        UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
+                        UserInfoRow(icon: "iphone", title: "Dispositivo:", value: iosVersionString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
+                    }
+                }
+                .padding(14)
+                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
+                .cornerRadius(14)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1)
+                )
+                
+                // Tus ajustes originales de la app
+                SettingsView()
+            }
+            .padding()
+        }
+    }
+}
+
+private struct UserInfoRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let accent: String
+    var appBackgroundMode: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(Color(hexString: accent))
+                .font(.system(size: 13))
+                .frame(width: 18)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .font(.caption.bold())
+                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
     }
 }
 
