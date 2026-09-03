@@ -3,57 +3,6 @@ import UIKit
 import Combine
 
 // ==========================================
-// MOCK DE COMPATIBILIDAD (Para evitar errores si faltan en tu proyecto global)
-// ==========================================
-#if DEBUG
-struct PatchDraftCoordinator {}
-#endif
-
-extension EnvironmentValues {
-    var appLanguage: AppLanguageMock {
-        get { self[AppLanguageKey.self] }
-        set { self[AppLanguageKey.self] = newValue }
-    }
-}
-
-struct AppLanguageMock {
-    func text(_ key: String) -> String {
-        return key
-    }
-}
-
-struct AppLanguageKey: EnvironmentKey {
-    static let defaultValue: AppLanguageMock = AppLanguageMock()
-}
-
-// Extensión de Color para soportar códigos Hex (Por si no lo tenías arriba)
-extension Color {
-    init(hexString: String) {
-        let hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 255, 255, 255)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
-// ==========================================
 // 1. GESTOR DE SESIÓN Y KEYS (AppSessionManager)
 // ==========================================
 class AppSessionManager: ObservableObject {
@@ -215,7 +164,7 @@ struct LoginView: View {
 }
 
 // ==========================================
-// 3. VISTA PRINCIPAL (ContentView con tu código original)
+// 3. VISTA PRINCIPAL (ContentView limpio sin redeclaraciones)
 // ==========================================
 struct ContentView: View {
     @StateObject private var session = AppSessionManager()
@@ -241,12 +190,12 @@ struct ContentView: View {
                         }
                     }
 
-                    // Contenedor principal de pestañas
+                    // Contenedor principal de pestañas (Llamando a PatchProjectsView sin parámetros extra)
                     Group {
                         switch selectedTab {
                         case 0:
                             NavigationStack {
-                                PatchProjectsView(accentColorHex: $accentColorHex)
+                                PatchProjectsView()
                                     .navigationBarTitleDisplayMode(.inline)
                                     .tint(Color(hexString: accentColorHex))
                                     .toolbar {
@@ -283,13 +232,13 @@ struct ContentView: View {
                                 }
                             } else {
                                 NavigationStack {
-                                    PatchProjectsView(accentColorHex: $accentColorHex)
+                                    PatchProjectsView()
                                         .navigationBarTitleDisplayMode(.inline)
                                         .tint(Color(hexString: accentColorHex))
                                 }
                             }
                         default:
-                            PatchProjectsView(accentColorHex: $accentColorHex)
+                            PatchProjectsView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -545,38 +494,6 @@ private struct VisualDownloadRow: View {
             .buttonStyle(BorderlessButtonStyle())
         }
         .padding(.vertical, 4)
-    }
-}
-
-// ==========================================
-// 4.1. VISTA DE PARCHES (Con Toggles tintados al color de configuración)
-// ==========================================
-struct PatchItem: Identifiable {
-    let id = UUID()
-    let name: String
-    var isEnabled: Bool
-}
-
-struct PatchProjectsView: View {
-    @Binding var accentColorHex: String
-    @State private var patches: [PatchItem] = [
-        PatchItem(name: "Aimbot Pecho", isEnabled: false),
-        PatchItem(name: "Aimbot Cuello", isEnabled: false),
-        PatchItem(name: "Holo Armas Celeste", isEnabled: true)
-    ]
-    
-    var body: some View {
-        List {
-            Section(header: Text("Parches Activos / Instalados")) {
-                ForEach($patches) { $patch in
-                    Toggle(patch.name, isOn: $patch.isEnabled)
-                        // Aplicamos el color de acento elegido en configuración al interruptor encendido
-                        .tint(Color(hexString: accentColorHex))
-                        .padding(.vertical, 4)
-                }
-            }
-        }
-        .navigationTitle("Parches")
     }
 }
 
