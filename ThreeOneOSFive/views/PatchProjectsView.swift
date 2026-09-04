@@ -244,8 +244,6 @@ private struct PatchProjectRow: View {
     let language: AppLanguage
     let accentColor: Color
 
-    @State private var showApplyConfirmation = false
-    @State private var showRestoreConfirmation = false
     @State private var isWorking = false
     @State private var actionAlert: PatchStoreAlert?
 
@@ -311,9 +309,9 @@ private struct PatchProjectRow: View {
                     get: { receipt != nil },
                     set: { newValue in
                         if newValue {
-                            showApplyConfirmation = true
+                            apply()
                         } else {
-                            showRestoreConfirmation = true
+                            restore()
                         }
                     }
                 )) {
@@ -326,24 +324,6 @@ private struct PatchProjectRow: View {
             }
         }
         .padding(.vertical, 4)
-        .confirmationDialog(
-            language.text("patch.apply_confirm_title"),
-            isPresented: $showApplyConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(language.text("patch.apply")) { apply() }
-            Button(language.text("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(language.text("patch.apply_confirm_message"))
-        }
-        .confirmationDialog(
-            language.text("patch.restore_confirm_title"),
-            isPresented: $showRestoreConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(language.text("patch.restore"), role: .destructive) { restore() }
-            Button(language.text("common.cancel"), role: .cancel) {}
-        }
         .alert(item: $actionAlert) { alert in
             Alert(
                 title: Text(language.text(alert.titleKey)),
@@ -465,8 +445,6 @@ struct PatchProjectDetailView: View {
     let projectID: UUID
     @State private var showEditor = false
     @State private var editingRule: PatchRule?
-    @State private var showApplyConfirmation = false
-    @State private var showRestoreConfirmation = false
     @State private var isWorking = false
     @State private var actionAlert: PatchStoreAlert?
     @State private var shareRequest: PatchShareRequest?
@@ -581,9 +559,9 @@ struct PatchProjectDetailView: View {
                         get: { receipt != nil },
                         set: { newValue in
                             if newValue {
-                                showApplyConfirmation = true
+                                apply()
                             } else {
-                                showRestoreConfirmation = true
+                                restore()
                             }
                         }
                     )) {
@@ -627,24 +605,6 @@ struct PatchProjectDetailView: View {
             PatchRuleEditorView(rule: rule) { updatedRule in
                 updateRule(updatedRule)
             }
-        }
-        .confirmationDialog(
-            language.text("patch.apply_confirm_title"),
-            isPresented: $showApplyConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(language.text("patch.apply")) { apply() }
-            Button(language.text("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(language.text("patch.apply_confirm_message"))
-        }
-        .confirmationDialog(
-            language.text("patch.restore_confirm_title"),
-            isPresented: $showRestoreConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(language.text("patch.restore"), role: .destructive) { restore() }
-            Button(language.text("common.cancel"), role: .cancel) {}
         }
         .alert(item: $actionAlert) { alert in
             Alert(
