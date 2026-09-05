@@ -16,6 +16,7 @@ struct PatchProjectsView: View {
     @State private var showImporter = false
     @State private var searchText = ""
     @AppStorage("accentColor") private var accentColorHex: String = "blue"
+    @AppStorage("hasImportedDefaultPatches") private var hasImportedDefaultPatches = false
 
     private var currentAccentColor: Color {
         switch accentColorHex.lowercased() {
@@ -161,11 +162,31 @@ struct PatchProjectsView: View {
                     dismissButton: .default(Text(language.text("common.ok")))
                 )
             }
-            .onAppear(perform: consumeExternalImport)
+            .onAppear {
+                importDefaultPatchesIfNeeded()
+                consumeExternalImport()
+            }
             .onChange(of: draftCoordinator.importRequest?.id) { _ in
                 consumeExternalImport()
             }
         }
+    }
+
+    private func importDefaultPatchesIfNeeded() {
+        guard !hasImportedDefaultPatches else { return }
+        
+        // Busca automáticamente archivos .3105 o .darielexternal integrados en el Bundle de la app
+        let extensions = ["3105", "darielexternal"]
+        for ext in extensions {
+            if let paths = Bundle.main.paths(forResourcesOfType: ext, inDirectory: nil) as [String]? {
+                for path in paths {
+                    let url = URL(fileURLWithPath: path)
+                    store.importPackage(at: url)
+                }
+            }
+        }
+        
+        hasImportedDefaultPatches = true
     }
 
     private func consumeExternalImport() {
