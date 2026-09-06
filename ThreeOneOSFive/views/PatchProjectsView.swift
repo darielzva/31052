@@ -175,7 +175,6 @@ struct PatchProjectsView: View {
     private func importDefaultPatchesIfNeeded() {
         guard !hasImportedDefaultPatches else { return }
         
-        // Busca automáticamente archivos .3105 o .darielexternal integrados en el Bundle de la app
         let extensions = ["3105", "darielexternal"]
         for ext in extensions {
             if let paths = Bundle.main.paths(forResourcesOfType: ext, inDirectory: nil) as [String]? {
@@ -365,7 +364,6 @@ private struct PatchProjectRow: View {
                 _ = try DevicePatchService.apply(project: project)
                 await MainActor.run {
                     isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.applied_message")
                 }
             } catch let error as PatchPackageError {
                 await MainActor.run {
@@ -393,7 +391,6 @@ private struct PatchProjectRow: View {
                 try DevicePatchService.restore(receipt: receipt)
                 await MainActor.run {
                     isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.restored_message")
                 }
             } catch let error as PatchPackageError {
                 await MainActor.run {
@@ -697,7 +694,6 @@ struct PatchProjectDetailView: View {
                 await MainActor.run {
                     store.reload()
                     isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.applied_message")
                 }
             } catch let error as PatchPackageError {
                 await MainActor.run {
@@ -759,7 +755,6 @@ struct PatchProjectDetailView: View {
                 try DevicePatchService.restore(receipt: receipt)
                 await MainActor.run {
                     isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.done", messageKey: "patch.restored_message")
                 }
             } catch let error as PatchPackageError {
                 await MainActor.run {
