@@ -344,7 +344,7 @@ private struct PatchProjectRow: View {
             }
         }
         .padding(.vertical, 4)
-        .id(accentColor) // Fuerza la actualización visual de la fila cuando cambia el color de acento
+        .id(accentColor)
         .alert(item: $actionAlert) { alert in
             Alert(
                 title: Text(language.text(alert.titleKey)),
@@ -715,7 +715,7 @@ struct PatchProjectDetailView: View {
     }
 
     private func prepareExport() {
-        garard let item else { return }
+        guard let item else { return }
         isWorking = true
         Task.detached(priority: .userInitiated) {
             do {
