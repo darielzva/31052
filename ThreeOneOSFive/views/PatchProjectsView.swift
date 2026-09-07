@@ -83,6 +83,9 @@ struct PatchProjectsView: View {
                     } else {
                         ForEach(filteredItems) { item in
                             itemRow(item)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .padding(.vertical, 4)
                         }
                         .onDelete { offsets in
                             offsets.map { filteredItems[$0] }.forEach(store.delete)
@@ -207,6 +210,7 @@ struct PatchProjectsView: View {
             } label: {
                 PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -217,6 +221,7 @@ struct PatchProjectsView: View {
                     .stroke(currentAccentColor, lineWidth: 1)
                     .background(RoundedRectangle(cornerRadius: 12).fill(currentAccentColor.opacity(0.12)))
                     .frame(width: 52, height: 52)
+                    .shadow(color: currentAccentColor.opacity(0.4), radius: 8, x: 0, y: 0)
                 Image(systemName: "shippingbox")
                     .font(.system(size: 22, weight: .light))
                     .foregroundStyle(currentAccentColor)
@@ -294,12 +299,13 @@ private struct PatchProjectRow: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(accentColor, lineWidth: 1)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.15)))
+                    .stroke(accentColor, lineWidth: 1.2)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.18)))
                     .frame(width: 34, height: 34)
+                    .shadow(color: accentColor.opacity(receipt != nil ? 0.6 : 0.25), radius: receipt != nil ? 6 : 3, x: 0, y: 0)
                  
                 Image(systemName: dynamicIconName)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
             .frame(width: 34, height: 34)
@@ -343,7 +349,16 @@ private struct PatchProjectRow: View {
                 .buttonStyle(BorderlessButtonStyle())
             }
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground).opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(receipt != nil ? accentColor.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .shadow(color: receipt != nil ? accentColor.opacity(0.25) : Color.black.opacity(0.2), radius: receipt != nil ? 8 : 4, x: 0, y: 2)
+        )
         .id(accentColor)
         .alert(item: $actionAlert) { alert in
             Alert(
@@ -587,11 +602,13 @@ struct PatchProjectDetailView: View {
                         Label(language.text("patch.apply"), systemImage: "checkmark.shield.fill")
                     }
                     .disabled(isWorking)
+                    .tint(currentAccentColor)
 
                     Button(action: prepareExport) {
                         actionLabel("patch.export", systemImage: "square.and.arrow.up")
                     }
                     .disabled(isWorking)
+                    .tint(currentAccentColor)
                 } footer: {
                     Text(language.text("patch.apply_footer"))
                 }
