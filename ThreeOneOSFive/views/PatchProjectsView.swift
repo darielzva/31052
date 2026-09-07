@@ -85,7 +85,7 @@ struct PatchProjectsView: View {
                             itemRow(item)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 6)
                         }
                         .onDelete { offsets in
                             offsets.map { filteredItems[$0] }.forEach(store.delete)
@@ -173,11 +173,11 @@ struct PatchProjectsView: View {
                 consumeExternalImport()
             }
         }
+        .id(accentColorHex)
     }
 
     private func importDefaultPatchesIfNeeded() {
         guard !hasImportedDefaultPatches else { return }
-        
         let extensions = ["3105", "darielexternal"]
         for ext in extensions {
             if let paths = Bundle.main.paths(forResourcesOfType: ext, inDirectory: nil) as [String]? {
@@ -187,7 +187,6 @@ struct PatchProjectsView: View {
                 }
             }
         }
-        
         hasImportedDefaultPatches = true
     }
 
@@ -217,13 +216,13 @@ struct PatchProjectsView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(currentAccentColor, lineWidth: 1)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(currentAccentColor.opacity(0.12)))
-                    .frame(width: 52, height: 52)
-                    .shadow(color: currentAccentColor.opacity(0.4), radius: 8, x: 0, y: 0)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(currentAccentColor, lineWidth: 1.5)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(currentAccentColor.opacity(0.15)))
+                    .frame(width: 58, height: 58)
+                    .shadow(color: currentAccentColor.opacity(0.5), radius: 10, x: 0, y: 0)
                 Image(systemName: "shippingbox")
-                    .font(.system(size: 22, weight: .light))
+                    .font(.system(size: 24, weight: .light))
                     .foregroundStyle(currentAccentColor)
             }
             Text(language.text("patch.empty_title"))
@@ -244,12 +243,12 @@ struct PatchProjectsView: View {
     private var searchEmptyState: some View {
         VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
-                    .frame(width: 52, height: 52)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.secondary.opacity(0.4), lineWidth: 1.5)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.secondary.opacity(0.08)))
+                    .frame(width: 58, height: 58)
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 22, weight: .light))
+                    .font(.system(size: 24, weight: .light))
                     .foregroundStyle(.secondary)
             }
             Text(language.text("patch.search_empty"))
@@ -296,23 +295,23 @@ private struct PatchProjectRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(accentColor, lineWidth: 1.2)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.18)))
-                    .frame(width: 34, height: 34)
-                    .shadow(color: accentColor.opacity(receipt != nil ? 0.6 : 0.25), radius: receipt != nil ? 6 : 3, x: 0, y: 0)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(accentColor, lineWidth: 1.8)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(accentColor.opacity(0.22)))
+                    .frame(width: 48, height: 48)
+                    .shadow(color: accentColor.opacity(0.65), radius: 8, x: 0, y: 0)
                  
                 Image(systemName: dynamicIconName)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
-            .frame(width: 34, height: 34)
+            .frame(width: 48, height: 48)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.project?.name ?? language.text("patch.locked_project"))
-                    .font(.body.weight(.semibold))
+                    .font(.body.weight(.bold))
                     .foregroundStyle(.primary)
                 Text(item.isLocked
                      ? language.text("patch.tap_to_unlock")
@@ -320,13 +319,13 @@ private struct PatchProjectRow: View {
                         item.summary.schemaVersion >= 2 ? "patch.workspace_items_count" : "patch.rules_count",
                         Int64((item.project?.rules.count ?? 0) + (item.project?.directories.count ?? 0))
                      ))
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if item.summary.isPasswordProtected {
                 Image(systemName: "key.fill")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel(language.text("patch.password_protected"))
             }
@@ -349,15 +348,15 @@ private struct PatchProjectRow: View {
                 .buttonStyle(BorderlessButtonStyle())
             }
         }
-        .padding(12)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground).opacity(0.04))
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(.systemBackground).opacity(0.06))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(receipt != nil ? accentColor.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(accentColor.opacity(receipt != nil ? 0.9 : 0.4), lineWidth: 1.5)
                 )
-                .shadow(color: receipt != nil ? accentColor.opacity(0.25) : Color.black.opacity(0.2), radius: receipt != nil ? 8 : 4, x: 0, y: 2)
+                .shadow(color: accentColor.opacity(receipt != nil ? 0.5 : 0.2), radius: 12, x: 0, y: 4)
         )
         .id(accentColor)
         .alert(item: $actionAlert) { alert in
@@ -653,6 +652,7 @@ struct PatchProjectDetailView: View {
             PatchActivityView(items: [request.url])
                 .ignoresSafeArea()
         }
+        .id(accentColorHex)
     }
 
     private func actionLabel(_ key: String, systemImage: String) -> some View {
