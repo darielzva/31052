@@ -296,13 +296,13 @@ private struct PatchProjectRow: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(accentColor, lineWidth: 1)
                     .background(RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.15)))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 34, height: 34)
                  
                 Image(systemName: dynamicIconName)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
-            .frame(width: 36, height: 36)
+            .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.project?.name ?? language.text("patch.locked_project"))
