@@ -209,9 +209,10 @@ struct PatchProjectsView: View {
             } label: {
                 PatchProjectRow(item: item, language: language, accentColor: currentAccentColor)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain) // Esto evita que aparezca la flecha extra de navegación del sistema
         }
     }
+
 
     private var emptyState: some View {
         VStack(spacing: 12) {
