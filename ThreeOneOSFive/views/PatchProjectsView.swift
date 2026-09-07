@@ -297,40 +297,29 @@ private struct PatchProjectRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Icono con contenedor fluido y glow difuso
+            // Icono redondeado y estilizado con su glow
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(accentColor.opacity(0.18))
+                    .fill(accentColor.opacity(0.2))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .stroke(accentColor, lineWidth: 1.5)
                     )
-                    .frame(width: 52, height: 52)
-                    .shadow(color: accentColor.opacity(0.5), radius: 10, x: 0, y: 0)
+                    .frame(width: 48, height: 48)
+                    .shadow(color: accentColor.opacity(0.55), radius: 8, x: 0, y: 0)
                  
                 Image(systemName: dynamicIconName)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
 
-            // Textos alineados y compactos para evitar saltos raros
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.project?.name ?? language.text("patch.locked_project"))
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                
-                Text(item.isLocked
-                     ? language.text("patch.tap_to_unlock")
-                     : language.text(
-                        item.summary.schemaVersion >= 2 ? "patch.workspace_items_count" : "patch.rules_count",
-                        Int64((item.project?.rules.count ?? 0) + (item.project?.directories.count ?? 0))
-                     ))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Spacer(minLength: 4)
+            // Título principal con mayor espacio horizontal
+            Text(item.project?.name ?? language.text("patch.locked_project"))
+                .font(.body.weight(.bold))
+                .foregroundStyle(.primary)
+                .lineLimit(1) // Evita que baje de línea de forma vertical excesiva
+
+            Spacer(minLength: 8)
 
             if item.summary.isPasswordProtected {
                 Image(systemName: "key.fill")
@@ -357,22 +346,23 @@ private struct PatchProjectRow: View {
                 .buttonStyle(BorderlessButtonStyle())
             }
             
-            // Icono de chevron sutil a la derecha como en la referencia
+            // Única flecha indicadora limpia
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.vertical, 12) // Reducido verticalmente para evitar que se vea "cuadrada" o alta
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.systemBackground).opacity(0.65))
+                .fill(Color(.systemBackground).opacity(0.75))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(accentColor.opacity(0.45), lineWidth: 1.2)
+                        .stroke(accentColor.opacity(receipt != nil ? 0.9 : 0.45), lineWidth: 1.5)
                 )
-                // Glow difuminado exterior alrededor de la tarjeta
-                .shadow(color: accentColor.opacity(0.22), radius: 14, x: 0, y: 4)
+                // Glow difuminado horizontal alrededor de la tarjeta
+                .shadow(color: accentColor.opacity(receipt != nil ? 0.45 : 0.2), radius: 12, x: 0, y: 4)
         )
         .id(accentColor)
         .alert(item: $actionAlert) { alert in
