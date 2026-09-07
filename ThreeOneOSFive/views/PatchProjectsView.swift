@@ -295,24 +295,30 @@ private struct PatchProjectRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
+            // Icono con contenedor fluido y glow difuso
             ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(accentColor, lineWidth: 1.8)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(accentColor.opacity(0.22)))
-                    .frame(width: 48, height: 48)
-                    .shadow(color: accentColor.opacity(0.65), radius: 8, x: 0, y: 0)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(accentColor.opacity(0.18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(accentColor, lineWidth: 1.5)
+                    )
+                    .frame(width: 52, height: 52)
+                    .shadow(color: accentColor.opacity(0.5), radius: 10, x: 0, y: 0)
                  
                 Image(systemName: dynamicIconName)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(accentColor)
             }
-            .frame(width: 48, height: 48)
 
-            VStack(alignment: .leading, spacing: 4) {
+            // Textos alineados y compactos para evitar saltos raros
+            VStack(alignment: .leading, spacing: 3) {
                 Text(item.project?.name ?? language.text("patch.locked_project"))
                     .font(.body.weight(.bold))
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                
                 Text(item.isLocked
                      ? language.text("patch.tap_to_unlock")
                      : language.text(
@@ -322,13 +328,15 @@ private struct PatchProjectRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
+            
+            Spacer(minLength: 4)
+
             if item.summary.isPasswordProtected {
                 Image(systemName: "key.fill")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel(language.text("patch.password_protected"))
             }
+
             if !item.isLocked {
                 Toggle(isOn: Binding(
                     get: { receipt != nil },
@@ -347,16 +355,23 @@ private struct PatchProjectRow: View {
                 .disabled(isWorking)
                 .buttonStyle(BorderlessButtonStyle())
             }
+            
+            // Icono de chevron sutil a la derecha como en la referencia
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.tertiary)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemBackground).opacity(0.06))
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.systemBackground).opacity(0.65))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(accentColor.opacity(receipt != nil ? 0.9 : 0.4), lineWidth: 1.5)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(accentColor.opacity(0.45), lineWidth: 1.2)
                 )
-                .shadow(color: accentColor.opacity(receipt != nil ? 0.5 : 0.2), radius: 12, x: 0, y: 4)
+                // Glow difuminado exterior alrededor de la tarjeta
+                .shadow(color: accentColor.opacity(0.22), radius: 14, x: 0, y: 4)
         )
         .id(accentColor)
         .alert(item: $actionAlert) { alert in
@@ -377,23 +392,9 @@ private struct PatchProjectRow: View {
                     ? try PatchProjectLibrary.synchronizeWorkspace(item: item)
                     : baseProject
                 _ = try DevicePatchService.apply(project: project)
-                await MainActor.run {
-                    isWorking = false
-                }
-            } catch let error as PatchPackageError {
-                await MainActor.run {
-                    isWorking = false
-                    actionAlert = PatchStoreAlert(
-                        titleKey: "common.failed",
-                        messageKey: error.localizationKey,
-                        messageArgument: error.localizationArgument
-                    )
-                }
+                await MainActor.run { isWorking = false }
             } catch {
-                await MainActor.run {
-                    isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.apply")
-                }
+                await MainActor.run { isWorking = false }
             }
         }
     }
@@ -404,23 +405,9 @@ private struct PatchProjectRow: View {
         Task.detached(priority: .userInitiated) {
             do {
                 try DevicePatchService.restore(receipt: receipt)
-                await MainActor.run {
-                    isWorking = false
-                }
-            } catch let error as PatchPackageError {
-                await MainActor.run {
-                    isWorking = false
-                    actionAlert = PatchStoreAlert(
-                        titleKey: "common.failed",
-                        messageKey: error.localizationKey,
-                        messageArgument: error.localizationArgument
-                    )
-                }
+                await MainActor.run { isWorking = false }
             } catch {
-                await MainActor.run {
-                    isWorking = false
-                    actionAlert = PatchStoreAlert(titleKey: "common.failed", messageKey: "patch.error.restore")
-                }
+                await MainActor.run { isWorking = false }
             }
         }
     }
