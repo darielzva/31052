@@ -3,171 +3,9 @@ import UIKit
 import Combine
 
 // ==========================================
-// 1. GESTOR DE SESIÓN Y KEYS (AppSessionManager)
-// ==========================================
-class AppSessionManager: ObservableObject {
-    @Published var isLoggedIn: Bool = false
-    @Published var username: String = ""
-    @Published var currentKey: String = ""
-    @Published var planType: String = "VIP"
-    @Published var isAdmin: Bool = false
-    @Published var expirationDate: Date = Date().addingTimeInterval(30 * 24 * 3600)
-    @Published var timeRemainingString: String = "Calculando..."
-    
-    private var timer: AnyCancellable?
-    
-    init() {
-        startTimer()
-    }
-    
-    func login(user: String, key: String) -> Bool {
-        guard !user.isEmpty, !key.isEmpty else { return false }
-        
-        self.username = user
-        self.currentKey = key
-        self.isLoggedIn = true
-        
-        if key == "123" || key.starts(with: "ADMIN") || key.starts(with: "DARIEL") {
-            self.isAdmin = true
-            self.planType = "ADMIN / VIP"
-        } else {
-            self.isAdmin = false
-            self.planType = key.count > 10 ? "VIP" : "NORMAL"
-        }
-        
-        self.expirationDate = Date().addingTimeInterval(30 * 24 * 3600)
-        updateTimeRemaining()
-        
-        return true
-    }
-    
-    func logout() {
-        self.isLoggedIn = false
-        self.username = ""
-        self.currentKey = ""
-        self.isAdmin = false
-    }
-    
-    private func startTimer() {
-        timer = Timer.publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateTimeRemaining()
-            }
-    }
-    
-    private func updateTimeRemaining() {
-        let remaining = expirationDate.timeIntervalSinceNow
-        if remaining <= 0 {
-            timeRemainingString = "Expirada"
-        } else {
-            let days = Int(remaining) / (3600 * 24)
-            let hours = (Int(remaining) % (3600 * 24)) / 3600
-            let minutes = (Int(remaining) % 3600) / 60
-            let seconds = Int(remaining) % 60
-            timeRemainingString = "\(days)d \(hours)h \(minutes)m \(seconds)s"
-        }
-    }
-}
-
-// ==========================================
-// 2. VISTA DE INICIO DE SESIÓN (LoginView)
-// ==========================================
-struct LoginView: View {
-    @EnvironmentObject var session: AppSessionManager
-    @Binding var accentColorHex: String
-    @State private var usernameInput: String = ""
-    @State private var keyInput: String = ""
-    @State private var showAlert: Bool = false
-    @State private var alertMessage: String = ""
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            VStack(spacing: 25) {
-                Spacer()
-                
-                VStack(spacing: 8) {
-                    Image(systemName: "shield.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(Color(hexString: accentColorHex))
-                    
-                    Text("DARIEL EXTERNAL")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .padding(.bottom, 10)
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("USUARIO")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.gray)
-                        
-                        TextField("Ingresa tu usuario", text: $usernameInput)
-                            .padding()
-                            .background(Color(white: 0.12))
-                            .cornerRadius(12)
-                            .foregroundColor(.white)
-                            .autocapitalization(.none)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("KEY (LLAVE DE ACCESO)")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.gray)
-                        
-                        SecureField("Ingresa tu Key", text: $keyInput)
-                            .padding()
-                            .background(Color(white: 0.12))
-                            .cornerRadius(12)
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(.horizontal, 24)
-                
-                Button(action: {
-                    let success = session.login(user: usernameInput, key: keyInput)
-                    if !success {
-                        alertMessage = "Por favor ingresa usuario y key válidos."
-                        showAlert = true
-                    }
-                }) {
-                    Text("INGRESAR")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(hexString: accentColorHex))
-                        .cornerRadius(14)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 10)
-                
-                Spacer()
-                
-                Text("¿No estás registrado?\nContáctame para obtener acceso.")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.bottom, 30)
-            }
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Atención"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-    }
-}
-
-// ==========================================
-// 3. VISTA PRINCIPAL (ContentView limpio sin redeclaraciones)
+// 1. VISTA PRINCIPAL (ContentView)
 // ==========================================
 struct ContentView: View {
-    @StateObject private var session = AppSessionManager()
     @Environment(\.appLanguage) private var language
     @State private var selectedTab = 0
     @State private var showSettings = false
@@ -178,101 +16,60 @@ struct ContentView: View {
     @AppStorage("accentColor") var accentColorHex: String = "FF7F50"
 
     var body: some View {
-        Group {
-            if session.isLoggedIn {
-                ZStack(alignment: .bottom) {
-                    // Fondo dinámico Blanco o Negro a pantalla completa
-                    Group {
-                        if appBackgroundMode == "black" {
-                            Color.black.ignoresSafeArea()
-                        } else {
-                            Color.white.ignoresSafeArea()
-                        }
-                    }
-
-                    // Contenedor principal de pestañas (Llamando a PatchProjectsView sin parámetros extra)
-                    Group {
-                        switch selectedTab {
-                        case 0:
-                            NavigationStack {
-                                PatchProjectsView()
-                                    .navigationBarTitleDisplayMode(.inline)
-                                    .tint(Color(hexString: accentColorHex))
-                                    .toolbar {
-                                        toolbarContent
-                                    }
-                            }
-                        case 1:
-                            NavigationStack {
-                                LibraryDownloadView(accentColorHex: $accentColorHex)
-                                    .navigationTitle("Librería")
-                                    .navigationBarTitleDisplayMode(.inline)
-                                    .tint(Color(hexString: accentColorHex))
-                                    .toolbar {
-                                        toolbarContent
-                                    }
-                            }
-                        case 2:
-                            NavigationStack {
-                                SettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
-                                    .navigationTitle("Configuración")
-                                    .navigationBarTitleDisplayMode(.inline)
-                                    .tint(Color(hexString: accentColorHex))
-                            }
-                        case 3:
-                            if session.isAdmin {
-                                NavigationStack {
-                                    KeysAdminManagementView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
-                                        .navigationTitle("Gestión de Keys")
-                                        .navigationBarTitleDisplayMode(.inline)
-                                        .tint(Color(hexString: accentColorHex))
-                                        .toolbar {
-                                            toolbarContent
-                                        }
-                                }
-                            } else {
-                                NavigationStack {
-                                    PatchProjectsView()
-                                        .navigationBarTitleDisplayMode(.inline)
-                                        .tint(Color(hexString: accentColorHex))
-                                }
-                            }
-                        default:
-                            PatchProjectsView()
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    
-                    // Barra de navegación flotante estilo pastilla personalizada
-                    HStack(spacing: session.isAdmin ? 16 : 28) {
-                        FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab, accentColorHex: accentColorHex)
-                        FloatingTabButton(icon: "arrow.down.circle.fill", title: "Librería", tag: 1, selectedTab: $selectedTab, accentColorHex: accentColorHex)
-                        FloatingTabButton(icon: "gearshape.fill", title: "Ajustes", tag: 2, selectedTab: $selectedTab, accentColorHex: accentColorHex)
-                        
-                        if session.isAdmin {
-                            FloatingTabButton(icon: "key.fill", title: "Keys", tag: 3, selectedTab: $selectedTab, accentColorHex: accentColorHex)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(38)
-                    .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 6)
-                    .padding(.horizontal, 15)
-                    .padding(.bottom, 20)
+        ZStack(alignment: .bottom) {
+            // Fondo dinámico Blanco o Negro a pantalla completa
+            Group {
+                if appBackgroundMode == "black" {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color.white.ignoresSafeArea()
                 }
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-                .tint(Color(hexString: accentColorHex))
-                .imageScale(.medium)
-                .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
-                .sheet(isPresented: $showSettings) { SettingsView() }
-                .sheet(isPresented: $showLogs) { LogView() }
-                .environmentObject(session)
-            } else {
-                LoginView(accentColorHex: $accentColorHex)
-                    .environmentObject(session)
             }
+
+            // Contenedor principal de pestañas (Únicamente Parches y Ajustes)
+            Group {
+                switch selectedTab {
+                case 0:
+                    NavigationStack {
+                        PatchProjectsView(accentColorHex: $accentColorHex, appBackgroundMode: $appBackgroundMode)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .tint(Color(hexString: accentColorHex))
+                            .toolbar {
+                                toolbarContent
+                            }
+                    }
+                case 1:
+                    NavigationStack {
+                        SettingsContainerView(accentColorHex: $accentColorHex, appBackgroundMode: appBackgroundMode)
+                            .navigationTitle("Configuración")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .tint(Color(hexString: accentColorHex))
+                    }
+                default:
+                    PatchProjectsView(accentColorHex: $accentColorHex, appBackgroundMode: $appBackgroundMode)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            // Barra de navegación flotante estilo pastilla personalizada (2 opciones)
+            HStack(spacing: 32) {
+                FloatingTabButton(icon: "shippingbox.fill", title: "Parches", tag: 0, selectedTab: $selectedTab, accentColorHex: accentColorHex)
+                FloatingTabButton(icon: "gearshape.fill", title: "Ajustes", tag: 1, selectedTab: $selectedTab, accentColorHex: accentColorHex)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
+            .cornerRadius(38)
+            .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 6)
+            .padding(.horizontal, 15)
+            .padding(.bottom, 20)
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .tint(Color(hexString: accentColorHex))
+        .imageScale(.medium)
+        .preferredColorScheme(appBackgroundMode == "black" ? .dark : .light)
+        .sheet(isPresented: $showSettings) { SettingsView(accentColorHex: $accentColorHex, appBackgroundMode: $appBackgroundMode) }
+        .sheet(isPresented: $showLogs) { LogView(appBackgroundMode: $appBackgroundMode) }
     }
 
     @ToolbarContentBuilder
@@ -292,7 +89,9 @@ struct ContentView: View {
     }
 }
 
-// Botón individual para la pastilla flotante con color dinámico
+// ==========================================
+// 2. BOTÓN DE PESTAÑA FLOTANTE
+// ==========================================
 private struct FloatingTabButton: View {
     let icon: String
     let title: String
@@ -325,183 +124,10 @@ private struct FloatingTabButton: View {
     }
 }
 
-private enum LibraryTabType {
-    case aim, visual
-}
-
 // ==========================================
-// 4. LIBRERÍA (Con extensión actualizada a .darielexternal)
-// ==========================================
-struct LibraryDownloadView: View {
-    @State private var selectedLibraryTab: LibraryTabType = .aim
-    @State private var alertMessage = ""
-    @State private var showAlert = false
-    @Binding var accentColorHex: String
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Selector de pestañas AIM / VISUAL dentro de la librería
-            HStack(spacing: 12) {
-                Button(action: { selectedLibraryTab = .aim }) {
-                    Text("AIM")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedLibraryTab == .aim ? Color(hexString: accentColorHex) : Color(.systemGray6))
-                        .foregroundColor(selectedLibraryTab == .aim ? .white : .secondary)
-                        .cornerRadius(12)
-                }
-
-                Button(action: { selectedLibraryTab = .visual }) {
-                    Text("VISUAL")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedLibraryTab == .visual ? Color(hexString: accentColorHex) : Color(.systemGray6))
-                        .foregroundColor(selectedLibraryTab == .visual ? .white : .secondary)
-                        .cornerRadius(12)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
-
-            List {
-                if selectedLibraryTab == .aim {
-                    Section(header: Text("Aims y Modificaciones")) {
-                        DownloadRow(title: "Aimbot Pecho", description: "Apunta automáticamente al torso del enemigo.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotPecho.darielexternal", displayName: "Aimbot Pecho")
-                        }
-                        
-                        DownloadRow(title: "Aimbot Cuello", description: "Calibración de precisión directa al cuello.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotCuello.darielexternal", displayName: "Aimbot Cuello")
-                        }
-                        
-                        DownloadRow(title: "Aimbot Drag", description: "Mejora la velocidad de arrastre de mira.", accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "AimbotDrag.darielexternal", displayName: "Aimbot Drag")
-                        }
-                    }
-                } else {
-                    Section(header: Text("Opciones Visuales")) {
-                        VisualDownloadRow(title: "Holo Armas Celeste", description: "Efecto holográfico celeste para armas.", icon: "sparkles", color: .cyan, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloCeleste.darielexternal", displayName: "Holo Armas Celeste")
-                        }
-                        
-                        VisualDownloadRow(title: "Holo Armas Amarillo", description: "Efecto holográfico amarillo para armas.", icon: "sparkles", color: .yellow, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloAmarillo.darielexternal", displayName: "Holo Armas Amarillo")
-                        }
-                        
-                        VisualDownloadRow(title: "Holo Armas Verde", description: "Efecto holográfico verde para armas.", icon: "sparkles", color: .green, accentColorHex: $accentColorHex) {
-                            downloadAndSavePatch(fileName: "HoloVerde.darielexternal", displayName: "Holo Armas Verde")
-                        }
-                    }
-                }
-            }
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Descarga Exitosa"), message: Text(alertMessage), dismissButton: .default(Text("Entendido")))
-        }
-    }
-
-    private func downloadAndSavePatch(fileName: String, displayName: String) {
-        let fileManager = FileManager.default
-        guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        
-        let patchesDir = documentsPath.appendingPathComponent("Patches").appendingPathComponent(displayName)
-        
-        do {
-            try fileManager.createDirectory(at: patchesDir, withIntermediateDirectories: true, attributes: nil)
-            let targetFile = patchesDir.appendingPathComponent(fileName)
-            
-            if !fileManager.fileExists(atPath: targetFile.path) {
-                let sampleData = "DATA_DARIEL_EXTERNAL_PATCH".data(using: .utf8) ?? Data()
-                try sampleData.write(to: targetFile)
-            }
-            
-            alertMessage = "Archivo \(displayName) descargado con éxito, impórtalo en parches y ejecútalo."
-            showAlert = true
-        } catch {
-            alertMessage = "Error al guardar el archivo."
-            showAlert = true
-        }
-    }
-}
-
-private struct DownloadRow: View {
-    let title: String
-    let description: String
-    @Binding var accentColorHex: String
-    let action: () -> Void
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button(action: action) {
-                Text("Descargar")
-                    .font(.subheadline.bold())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(hexString: accentColorHex))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .buttonStyle(BorderlessButtonStyle())
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-private struct VisualDownloadRow: View {
-    let title: String
-    let description: String
-    let icon: String
-    let color: Color
-    @Binding var accentColorHex: String
-    let action: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 32, height: 32)
-                .background(color.opacity(0.15))
-                .cornerRadius(8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button(action: action) {
-                Text("Descargar")
-                    .font(.subheadline.bold())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(hexString: accentColorHex))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .buttonStyle(BorderlessButtonStyle())
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// ==========================================
-// 5. AJUSTES + INFORMACIÓN DE USUARIO Y BOTÓN DE SALIR
+// 3. CONTENEDOR DE AJUSTES
 // ==========================================
 struct SettingsContainerView: View {
-    @EnvironmentObject var session: AppSessionManager
     @Binding var accentColorHex: String
     var appBackgroundMode: String
     
@@ -513,56 +139,28 @@ struct SettingsContainerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Tarjeta de información de sesión y botón de salida en Ajustes
+                // Tarjeta de información general del sistema
                 VStack(spacing: 10) {
                     HStack(spacing: 10) {
                         ZStack {
                             Circle()
                                 .fill(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray5))
                                 .frame(width: 40, height: 40)
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 26))
+                            Image(systemName: "iphone")
+                                .font(.system(size: 20))
                                 .foregroundColor(Color(hexString: accentColorHex))
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text("SESIÓN ACTUAL")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.secondary)
-                                Text("• \(session.planType)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(Color(hexString: accentColorHex))
-                            }
-                            Text(session.username)
+                            Text("SISTEMA")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.secondary)
+                            Text(iosVersionString)
                                 .font(.subheadline.bold())
                                 .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
                         }
                         
                         Spacer()
-                        
-                        Button(action: {
-                            session.logout()
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "power")
-                                Text("Salir")
-                                    .font(.caption.bold())
-                            }
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.red.opacity(0.15))
-                            .cornerRadius(8)
-                        }
-                    }
-                    
-                    Divider().background(Color.gray.opacity(0.2))
-                    
-                    VStack(spacing: 6) {
-                        UserInfoRow(icon: "key.fill", title: "Key:", value: session.currentKey, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
-                        UserInfoRow(icon: "clock.fill", title: "Expira en:", value: session.timeRemainingString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
-                        UserInfoRow(icon: "iphone", title: "Dispositivo:", value: iosVersionString, accent: accentColorHex, appBackgroundMode: appBackgroundMode)
                     }
                 }
                 .padding(14)
@@ -573,217 +171,304 @@ struct SettingsContainerView: View {
                         .stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1)
                 )
                 
-                // Tus ajustes originales de la app
-                SettingsView()
+                // Vista completa de ajustes de la aplicación
+                SettingsView(accentColorHex: $accentColorHex, appBackgroundMode: .constant(appBackgroundMode))
             }
             .padding()
         }
     }
 }
 
-private struct UserInfoRow: View {
-    let icon: String
-    let title: String
-    let value: String
-    let accent: String
-    var appBackgroundMode: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(Color(hexString: accent))
-                .font(.system(size: 13))
-                .frame(width: 18)
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption.bold())
-                .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        }
-    }
-}
-
 // ==========================================
-// 6. GESTIÓN DE KEYS (Con botones circulares 1, 7, 30 y +)
+// 4. VISTA DE PARCHES (PatchProjectsView Completa)
 // ==========================================
-struct KeysAdminManagementView: View {
+struct PatchProjectsView: View {
     @Binding var accentColorHex: String
-    var appBackgroundMode: String
-    @State private var customKeyInput: String = ""
-    @State private var customDaysInput: String = ""
-    @State private var showCustomDaysModal: Bool = false
-    @State private var generatedKeysList: [String] = []
+    @Binding var appBackgroundMode: String
     
+    @State private var patchesList: [PatchItem] = []
+    @State private var showAddPatchSheet = false
+    @State private var newPatchName = ""
+    @State private var newPatchDescription = ""
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("GENERAR KEYS")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.gray)
-                    
-                    HStack(spacing: 12) {
-                        Button(action: { createKeyWithDays(days: 1) }) {
-                            VStack(spacing: 2) {
-                                Text("1")
-                                    .font(.system(size: 16, weight: .bold))
-                                Text("Día")
-                                    .font(.system(size: 9))
-                            }
-                            .foregroundColor(.white)
-                            .frame(width: 52, height: 52)
-                            .background(Color(hexString: accentColorHex))
-                            .clipShape(Circle())
-                        }
-                        
-                        Button(action: { createKeyWithDays(days: 7) }) {
-                            VStack(spacing: 2) {
-                                Text("7")
-                                    .font(.system(size: 16, weight: .bold))
-                                Text("Días")
-                                    .font(.system(size: 9))
-                            }
-                            .foregroundColor(.white)
-                            .frame(width: 52, height: 52)
-                            .background(Color(hexString: accentColorHex))
-                            .clipShape(Circle())
-                        }
-                        
-                        Button(action: { createKeyWithDays(days: 30) }) {
-                            VStack(spacing: 2) {
-                                Text("30")
-                                    .font(.system(size: 16, weight: .bold))
-                                Text("Días")
-                                    .font(.system(size: 9))
-                            }
-                            .foregroundColor(.white)
-                            .frame(width: 52, height: 52)
-                            .background(Color(hexString: accentColorHex))
-                            .clipShape(Circle())
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: { showCustomDaysModal = true }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 52, height: 52)
-                                .background(Color(hexString: accentColorHex))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    
-                    HStack(spacing: 8) {
-                        TextField("Escribe texto personalizado", text: $customKeyInput)
-                            .padding()
-                            .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
-                            .cornerRadius(10)
-                            .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                        
-                        Button(action: {
-                            createCustomTextKey()
-                        }) {
-                            Text("Crear")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 14)
-                                .background(Color(hexString: accentColorHex))
-                                .cornerRadius(10)
-                        }
-                    }
+        ZStack {
+            Group {
+                if appBackgroundMode == "black" {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color.white.ignoresSafeArea()
                 }
-                .padding(16)
-                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1))
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("KEYS ACTIVAS")
-                            .font(.caption)
-                            .fontWeight(.bold)
+            }
+
+            VStack(spacing: 0) {
+                if patchesList.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "shippingbox")
+                            .font(.system(size: 50))
                             .foregroundColor(.gray)
-                        Spacer()
-                        Text("\(generatedKeysList.count) Totales")
-                            .font(.caption)
-                            .foregroundColor(Color(hexString: accentColorHex))
-                    }
-                    
-                    if generatedKeysList.isEmpty {
-                        Text("No hay keys generadas aún.")
+                        Text("No hay parches agregados")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Importa o crea nuevos parches para comenzar.")
                             .font(.subheadline)
                             .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 20)
-                    } else {
-                        ForEach(generatedKeysList, id: \.self) { key in
-                            HStack {
-                                Text(key)
-                                    .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
-                                    .font(.system(size: 13, design: .monospaced))
-                                Spacer()
-                                Button(action: {
-                                    UIPasteboard.general.string = key
-                                }) {
-                                    Image(systemName: "doc.on.doc")
-                                        .foregroundColor(Color(hexString: accentColorHex))
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+                } else {
+                    List {
+                        ForEach(patchesList) { patch in
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hexString: accentColorHex).opacity(0.2))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: patch.isActive ? "checkmark.shield.fill" : "shield.slash.fill")
+                                        .foregroundColor(patch.isActive ? Color(hexString: accentColorHex) : .gray)
+                                        .font(.system(size: 20))
                                 }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(patch.name)
+                                        .font(.headline)
+                                        .foregroundColor(appBackgroundMode == "black" ? .white : .primary)
+                                    Text(patch.descriptionText)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Toggle("", isOn: Binding(
+                                    get: { patch.isActive },
+                                    set: { newValue in
+                                        togglePatchStatus(patch: patch, status: newValue)
+                                    }
+                                ))
+                                .labelsHidden()
+                                .tint(Color(hexString: accentColorHex))
                             }
-                            .padding()
-                            .background(appBackgroundMode == "black" ? Color(white: 0.15) : Color(.systemGray6))
-                            .cornerRadius(8)
+                            .padding(.vertical, 6)
+                            .listRowBackground(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
+                        }
+                        .onDelete(perform: deletePatch)
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+        }
+        .navigationTitle("Parches")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showAddPatchSheet = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                }
+            }
+        }
+        .sheet(isPresented: $showAddPatchSheet) {
+            NavigationView {
+                Form {
+                    Section(header: Text("Detalles del Parche")) {
+                        TextField("Nombre del Parche", text: $newPatchName)
+                        TextField("Descripción", text: $newPatchDescription)
+                    }
+                }
+                .navigationTitle("Nuevo Parche")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancelar") { showAddPatchSheet = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Guardar") {
+                            addNewPatch()
+                        }
+                        .disabled(newPatchName.isEmpty)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            loadPatches()
+        }
+    }
+
+    private func addNewPatch() {
+        let newPatch = PatchItem(name: newPatchName, descriptionText: newPatchDescription, isActive: false)
+        patchesList.append(newPatch)
+        savePatches()
+        newPatchName = ""
+        newPatchDescription = ""
+        showAddPatchSheet = false
+    }
+
+    private func togglePatchStatus(patch: PatchItem, status: Bool) {
+        if let index = patchesList.firstIndex(where: { $0.id == patch.id }) {
+            patchesList[index].isActive = status
+            savePatches()
+        }
+    }
+
+    private func deletePatch(at offsets: IndexSet) {
+        patchesList.remove(atOffsets: offsets)
+        savePatches()
+    }
+
+    private func savePatches() {
+        if let encoded = try? JSONEncoder().encode(patchesList) {
+            UserDefaults.standard.set(encoded, forKey: "saved_patches_list")
+        }
+    }
+
+    private func loadPatches() {
+        if let data = UserDefaults.standard.data(forKey: "saved_patches_list"),
+           let decoded = try? JSONDecoder().decode([PatchItem].self, from: data) {
+            patchesList = decoded
+        }
+    }
+}
+
+struct PatchItem: Identifiable, Codable {
+    var id = UUID()
+    var name: String
+    var descriptionText: String
+    var isActive: Bool
+}
+
+// ==========================================
+// 5. VISTA DE AJUSTES (SettingsView Completa)
+// ==========================================
+struct SettingsView: View {
+    @Binding var accentColorHex: String
+    @Binding var appBackgroundMode: String
+    
+    let availableColors = [
+        ("Coral", "FF7F50"),
+        ("Azul", "007AFF"),
+        ("Verde", "34C759"),
+        ("Morado", "AF52DE"),
+        ("Naranja", "FF9500"),
+        ("Rosa", "FF2D55")
+    ]
+
+    var body: some View {
+        Form {
+            Section(header: Text("Apariencia y Tema")) {
+                Picker("Modo de Fondo", selection: $appBackgroundMode) {
+                    Text("Negro Puro").tag("black")
+                    Text("Blanco / Sistema").tag("white")
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Section(header: Text("Color de Acentuación")) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 50))], spacing: 12) {
+                    ForEach(availableColors, id: \.1) { name, hex in
+                        ZStack {
+                            Circle()
+                                .fill(Color(hexString: hex))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: accentColorHex == hex ? 3 : 0)
+                                )
+                                .shadow(radius: accentColorHex == hex ? 4 : 0)
+                                .onTapGesture {
+                                    accentColorHex = hex
+                                }
                         }
                     }
                 }
-                .padding(16)
-                .background(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hexString: accentColorHex).opacity(0.3), lineWidth: 1))
+                .padding(.vertical, 8)
             }
-            .padding()
-        }
-        .alert("Añadir Días Personalizados", isPresented: $showCustomDaysModal) {
-            TextField("Número de días (ej. 15)", text: $customDaysInput)
-                .keyboardType(.numberPad)
-            Button("Generar") {
-                if let days = Int(customDaysInput), days > 0 {
-                    createKeyWithDays(days: days)
-                    customDaysInput = ""
+
+            Section(header: Text("Acerca de la Aplicación")) {
+                HStack {
+                    Text("Versión")
+                    Spacer()
+                    Text("1.0.0 (Clean Build)")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Desarrollador")
+                    Spacer()
+                    Text("Dariel")
+                        .foregroundColor(.secondary)
                 }
             }
-            Button("Cancelar", role: .cancel) {
-                customDaysInput = ""
-            }
-        } message: {
-            Text("Ingresa la cantidad de días de vigencia para esta Key.")
         }
     }
-    
-    private func createKeyWithDays(days: Int) {
-        let part1 = randomString(length: 3)
-        let part2 = randomString(length: 3)
-        let newKey = "DARIEL-\(days)D-\(part1)-\(part2)"
-        generatedKeysList.insert(newKey, at: 0)
+}
+
+// ==========================================
+// 6. VISTA DE LOGS (LogView Completa)
+// ==========================================
+struct LogView: View {
+    @Environment(\.dismiss) var dismiss
+    @Binding var appBackgroundMode: String
+    @State private var logEntries: [String] = [
+        "[INFO] Aplicación inicializada correctamente.",
+        "[DEBUG] Cargando entorno gráfico de parches...",
+        "[SUCCESS] Conexión local establecida sin errores.",
+        "[INFO] Sistema de sesiones y llaves removido por completo."
+    ]
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Group {
+                    if appBackgroundMode == "black" {
+                        Color.black.ignoresSafeArea()
+                    } else {
+                        Color(.systemGroupedBackground).ignoresSafeArea()
+                    }
+                }
+
+                List {
+                    ForEach(logEntries, id: \.self) { log in
+                        Text(log)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(appBackgroundMode == "black" ? Color.green : Color.primary)
+                            .listRowBackground(appBackgroundMode == "black" ? Color(white: 0.08) : Color(.systemBackground))
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Consola de Logs")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Cerrar") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Limpiar") {
+                        logEntries.removeAll()
+                    }
+                }
+            }
+        }
     }
-    
-    private func createCustomTextKey() {
-        guard !customKeyInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let formatted = customKeyInput.uppercased().replacingOccurrences(of: " ", with: "-")
-        let newKey = "DARIEL-\(formatted)"
-        generatedKeysList.insert(newKey, at: 0)
-        customKeyInput = ""
-    }
-    
-    private func randomString(length: Int) -> String {
-        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<length).map{ _ in letters.randomElement()! })
+}
+
+// ==========================================
+// 7. EXTENSIÓN DE COLOR (Para códigos Hex)
+// ==========================================
+extension Color {
+    init(hexString: String) {
+        let scanner = Scanner(string: hexString)
+        _ = scanner.scanString("#")
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let red = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let green = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let blue = Double(rgbValue & 0x0000FF) / 255.0
+        
+        self.init(red: red, green: green, blue: blue)
     }
 }
